@@ -89,7 +89,8 @@ social:
   enabled: true                        # needs X_BEARER_TOKEN (official X API v2). Never cookies/scraping.
   max_posts_per_token: 25              # X recent search accepts 10-100
   cache_minutes: 10
-  est_usd_per_post: 0.005              # set to YOUR X API price; the guard budgets with this estimate
+  est_usd_per_post: 0.015              # X pay-per-use: $0.005 per post + $0.010 per author returned with it
+                                       # (worst case; X dedups repeats within a UTC day, so real spend is usually lower)
   hourly_budget_usd: 2.0
   daily_budget_usd: 20.0
   on_missing: pass                     # pass  = Detective & Sniper vote PASS (blueprint default: no social data, no trade)

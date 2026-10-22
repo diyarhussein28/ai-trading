@@ -94,7 +94,7 @@ python3.12 -m venv .venv
 4. **مهم جداً:** شوف سعر قراءة المنشورات في خطتك (developer.x.com ← Pricing). بعدها افتح `config/v7.yaml` وعدّل:
    ```yaml
    social:
-     est_usd_per_post: 0.005    # حط السعر الحقيقي لكل منشور في خطتك
+     est_usd_per_post: 0.015    # 0.005$ للمنشور + 0.010$ لصاحب المنشور (أسوأ حالة)
      hourly_budget_usd: 2.0     # أقصى صرف بالساعة
      daily_budget_usd: 20.0     # أقصى صرف باليوم
    ```
