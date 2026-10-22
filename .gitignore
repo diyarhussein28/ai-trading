@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+data/
+*.db
+*.db-journal
+*.lock
+.pytest_cache/
+graphify-out/
+.DS_Store

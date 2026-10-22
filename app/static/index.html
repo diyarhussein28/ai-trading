@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memecoin Agents</title>
+<style>
+  :root {
+    --bg: #0B0C11; --panel: #12141B; --panel2: #171A23; --line: #232735; --text: #E9ECF2; --muted: #8A91A5;
+    --green: #20C878; --red: #F85860; --yellow: #F0B840; --claude: #E08858; --blue: #6AA8FF;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(900px 400px at 10% -10%, #0C1516 0%, transparent 70%); }
+  header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+    padding: 12px 16px; background: rgba(11,12,17,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .brand { font-weight: 800; letter-spacing: .3px; }
+  .brand span { color: var(--claude); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px;
+    font-weight: 700; border: 1px solid var(--line); background: var(--panel2); white-space: nowrap; }
+  .pill.paper { color: var(--yellow); border-color: #4a3d1c; }
+  .pill.ok { color: var(--green); border-color: #1d4a36; }
+  .pill.bad { color: var(--red); border-color: #5a2328; }
+  .stat { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .stat b { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
+  main { max-width: 1320px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+  .card h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
+  .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
+  @media (max-width: 980px) { .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; } }
+  .banner { border-radius: 12px; padding: 10px 14px; border: 1px solid #5a4a1c; background: #1d1a10; color: var(--yellow); }
+  .banner.red { border-color: #5a2328; background: #1d1012; color: var(--red); }
+  .agent { display: flex; flex-direction: column; gap: 8px; }
+  .agent .top { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: var(--panel2); border: 1px solid var(--line); }
+  .agent .name { font-weight: 800; }
+  .agent .role { color: var(--muted); font-size: 12px; }
+  .agent .status { margin-left: auto; }
+  .thought { color: #cdd2de; font-size: 13px; min-height: 38px; }
+  .lesson { font-size: 12px; color: var(--muted); border-left: 2px solid var(--claude); padding-left: 8px; }
+  .counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .counter { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
+  .counter b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .counter span { color: var(--muted); font-size: 12px; }
+  .test { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center; }
+  @media (max-width: 520px) { .test { grid-template-columns: 1fr; justify-items: center; } }
+  .kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .kv div { background: var(--panel2); border-radius: 10px; padding: 8px 10px; border: 1px solid var(--line); }
+  .kv span { display: block; color: var(--muted); font-size: 11px; }
+  .kv b { font-variant-numeric: tabular-nums; }
+  .crit { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+  .crit li { display: flex; gap: 8px; } .crit .d { color: var(--muted); margin-left: auto; text-align: right; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .pos { color: var(--green); } .neg { color: var(--red); } .warn { color: var(--yellow); } .muted { color: var(--muted); }
+  .feed { max-height: 360px; overflow-y: auto; display: grid; gap: 6px; }
+  .feed .row { font-size: 12.5px; padding: 6px 8px; background: var(--panel2); border-radius: 8px; border: 1px solid var(--line); }
+  .feed .meta { color: var(--muted); font-size: 11px; }
+  .position { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; padding: 10px; background: var(--panel2); border-radius: 12px; border: 1px solid var(--line); margin-bottom: 10px; }
+  .bar { height: 8px; border-radius: 99px; background: #262a38; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--yellow), var(--green)); }
+  .funnel { display: grid; gap: 6px; }
+  .funnel .f { display: grid; grid-template-columns: 130px 1fr 70px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .funnel .f .bar i { background: var(--blue); }
+  a { color: var(--blue); text-decoration: none; }
+  .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+  button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">🤖 Memecoin Agents · <span id="version">V7</span></div>
+  <span class="pill paper" id="mode">PAPER</span>
+  <span class="stat">PnL today <b id="pnlToday">–</b></span>
+  <span class="stat">launches seen <b id="launches">–</b></span>
+  <span class="stat">uptime <b id="uptime">–</b></span>
+  <span class="stat">SOL <b id="sol">–</b></span>
+  <span class="pill" id="health">…</span>
+  <span class="stat" id="backend"></span>
+</header>
+<main>
+  <div id="banners" class="grid"></div>
+
+  <section class="grid" id="agents"></section>
+
+  <section class="grid">
+    <div class="card span-5">
+      <h2>The real test · 100 trades</h2>
+      <div class="test">
+        <svg id="ring" viewBox="0 0 120 120" width="140" height="140" aria-label="progress"></svg>
+        <div>
+          <div style="margin-bottom:8px">Verdict: <b id="verdict">–</b></div>
+          <div class="kv" id="testkv"></div>
+        </div>
+      </div>
+      <ul class="crit" id="criteria"></ul>
+    </div>
+    <div class="card span-7">
+      <h2>Open positions</h2>
+      <div id="positions"></div>
+      <h2 style="margin-top:14px">Pipeline</h2>
+      <div class="counters" id="counters" style="margin-bottom:12px"></div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Closed trades (this version)</h2>
+    <div class="scroll"><table id="trades"></table></div>
+  </section>
+
+  <section class="grid">
+    <div class="card span-6"><h2>All versions · wins</h2><div class="scroll"><table id="versions"></table></div></div>
+    <div class="card span-6"><h2>Confidence calibration</h2><div class="scroll"><table id="calib"></table></div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0" id="brier"></p></div>
+  </section>
+
+  <section class="grid">
+    <div class="card span-7"><h2>Team blackboard · every token the agents discussed</h2><div class="feed" id="blackboard"></div></div>
+    <div class="card span-5"><h2>Candidate board</h2><div class="feed" id="candidates"></div></div>
+  </section>
+
+  <section class="grid">
+    <div class="card span-6"><h2>Costs vs PnL</h2><div id="costs"></div></div>
+    <div class="card span-6"><h2>Checkpoint reports</h2><div class="feed" id="reports"></div></div>
+  </section>
+</main>
+<script>
+const qs = new URLSearchParams(location.search);
+const TOKEN = qs.get("token") || "";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (x, d = 2) => (x === null || x === undefined || x === "inf") ? (x === "inf" ? "∞" : "–") : Number(x).toFixed(d);
+const pct = (x, d = 1) => x === null || x === undefined ? "–" : (x > 0 ? "+" : "") + Number(x).toFixed(d) + "%";
+const pctOf = (x, d = 0) => x === null || x === undefined ? "–" : (Number(x) * 100).toFixed(d) + "%";
+const cls = x => x > 0 ? "pos" : x < 0 ? "neg" : "";
+const sol = (x, d = 4) => x === null || x === undefined ? "–" : (x > 0 ? "+" : "") + Number(x).toFixed(d) + " SOL";
+const ago = ts => { const s = Date.now() / 1000 - ts; return s < 60 ? Math.round(s) + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; };
+const AV = { detective: "🕵️", sniper: "🎯", professor: "🧪" };
+
+function gauge(score) {
+  const a = Math.PI * (1 - Math.max(0, Math.min(100, score)) / 100);
+  const x = 60 + 46 * Math.cos(a), y = 60 - 46 * Math.sin(a);
+  return `<svg viewBox="0 0 120 70" width="120" height="70" aria-label="confidence ${score}">
+    <defs><linearGradient id="g${score}" x1="0" x2="1"><stop offset="0" stop-color="#F85860"/><stop offset=".55" stop-color="#F0B840"/><stop offset="1" stop-color="#20C878"/></linearGradient></defs>
+    <path d="M14 60 A46 46 0 0 1 106 60" fill="none" stroke="url(#g${score})" stroke-width="10" stroke-linecap="round"/>
+    <line x1="60" y1="60" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#E9ECF2" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="60" cy="60" r="5" fill="#E9ECF2"/>
+    <text x="60" y="44" text-anchor="middle" fill="#E9ECF2" font-size="15" font-weight="800">${score}</text></svg>`;
+}
+
+function ring(n, planned) {
+  const r = 50, c = 2 * Math.PI * r, f = Math.min(1, n / planned);
+  return `<circle cx="60" cy="60" r="${r}" fill="none" stroke="#232735" stroke-width="10"/>
+    <circle cx="60" cy="60" r="${r}" fill="none" stroke="#F0B840" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 60 60)"/>
+    <text x="60" y="58" text-anchor="middle" fill="#E9ECF2" font-size="24" font-weight="800">${n}</text>
+    <text x="60" y="78" text-anchor="middle" fill="#8A91A5" font-size="12">/ ${planned} trades</text>`;
+}
+
+function render(s) {
+  document.getElementById("version").textContent = s.version;
+  const mode = document.getElementById("mode");
+  mode.textContent = s.demo ? "DEMO · PAPER" : s.mode;
+  document.getElementById("pnlToday").innerHTML = `<span class="${cls(s.pnl_today_sol)}">${sol(s.pnl_today_sol)}</span>`;
+  document.getElementById("launches").textContent = Number(s.launches_seen).toLocaleString();
+  document.getElementById("uptime").textContent = Math.round(s.uptime_min) + "m";
+  document.getElementById("sol").textContent = s.sol_usd ? "$" + num(s.sol_usd, 2) : "–";
+  const h = document.getElementById("health");
+  h.className = "pill " + (s.health.ok ? "ok" : "bad");
+  h.textContent = s.health.ok ? "● healthy" : "● degraded";
+  document.getElementById("backend").textContent = `agents: ${s.backend} · config ${s.config_hash}`;
+
+  const b = [];
+  if (s.config_drift) b.push(["red", s.config_drift]);
+  if (s.risk.halted) b.push(["red", "Test halted by early-stop rule: " + s.risk.halted]);
+  if (s.risk.paused) b.push(["", "New entries paused by operator."]);
+  if (s.risk.kill_switch_until) b.push(["red", "Kill switch active until " + new Date(s.risk.kill_switch_until * 1000).toLocaleTimeString()]);
+  if (!s.social_enabled && s.social_policy === "pass" && !s.demo)
+    b.push(["", "X data is off and social.on_missing = pass: Detective & Sniper will PASS on every token, so no trades will open. Add X_BEARER_TOKEN or switch to degrade mode."]);
+  if (s.demo) b.push(["", "Demo mode: synthetic market and rule-based agents. These numbers say nothing about real performance."]);
+  document.getElementById("banners").innerHTML = b.map(([c, t]) => `<div class="banner ${c} span-12">${esc(t)}</div>`).join("");
+
+  document.getElementById("agents").innerHTML = s.agents.map(a => `
+    <div class="card span-4 agent">
+      <div class="top"><div class="avatar">${AV[a.key]}</div>
+        <div><div class="name">${esc(a.title)}</div><div class="role">${esc(a.role)} · ${esc(a.beat)}</div></div>
+        <span class="pill status ${a.status === "IDLE" ? "" : "ok"}">${esc(a.status)}</span></div>
+      <div class="thought">${esc(a.thought || "Waiting for a candidate that clears the filter and the safety gate…")}</div>
+      <div class="muted" style="font-size:12px">BUY ${a.buys} · PASS ${a.passes}</div>
+      ${a.lesson ? `<div class="lesson"><b>Latest lesson:</b> ${esc(a.lesson)}</div>` : ""}
+    </div>`).join("");
+
+  const t = s.test, sm = t.summary;
+  document.getElementById("ring").innerHTML = ring(t.progress, t.planned);
+  const v = document.getElementById("verdict");
+  v.textContent = t.verdict;
+  v.className = t.verdict === "PASSED" ? "pos" : t.verdict === "INCONCLUSIVE" ? "warn" : (t.verdict === "FAILED" || t.verdict === "STOPPED EARLY") ? "neg" : "warn";
+  document.getElementById("testkv").innerHTML = [
+    ["Hit rate", `${sm.wins}/${sm.n} · ${pctOf(sm.hit)}`],
+    ["95% CI", `${pctOf(sm.ci95[0])}–${pctOf(sm.ci95[1])}`],
+    ["Profit factor", num(sm.profit_factor)],
+    ["PnL", `<span class="${cls(sm.pnl_sol)}">${sol(sm.pnl_sol)}</span>`],
+    ["Avg win / loss", `${pct(sm.avg_win_pct)} / ${pct(sm.avg_loss_pct)}`],
+    ["Max drawdown", num(sm.max_dd_sol, 4) + " SOL"],
+  ].map(([k, x]) => `<div><span>${k}</span><b>${x}</b></div>`).join("");
+  const icon = { pass: '<span class="pos">✓</span>', fail: '<span class="neg">✗</span>', pending: '<span class="muted">…</span>' };
+  document.getElementById("criteria").innerHTML = t.criteria.map(c =>
+    `<li>${icon[c.status]} <span>${esc(c.name)}</span><span class="d">${esc(c.detail)}</span></li>`).join("");
+
+  const pos = s.open_positions;
+  document.getElementById("positions").innerHTML = pos.length ? pos.map(p => `
+    <div class="position">${gauge(p.confidence)}
+      <div><div><b>${esc(p.symbol)}</b> <span class="muted">${esc(p.version)}</span>
+        <span class="${cls(p.unrealized_pct)}" style="float:right;font-weight:800">${pct(p.unrealized_pct)}</span></div>
+        <div class="muted" style="font-size:12px;margin:4px 0">size ${num(p.size_sol, 4)} SOL · held ${num(p.held_min, 1)}m · peak ${pct(p.peak_return_pct)}</div>
+        <div class="bar" title="trade size"><i style="width:${Math.min(100, p.size_sol / 0.035 * 100).toFixed(0)}%"></i></div>
+        <div class="muted" style="font-size:11px;margin-top:4px"><a href="https://dexscreener.com/solana/${esc(p.mint)}" target="_blank" rel="noopener">${esc(p.mint.slice(0, 6))}…${esc(p.mint.slice(-4))}</a></div>
+      </div></div>`).join("") : `<div class="empty">No open positions</div>`;
+
+  const pl = s.pipeline;
+  document.getElementById("counters").innerHTML = [
+    ["thoughts", pl.evaluated], ["✅ taken", pl.taken], ["❌ passed", pl.evaluated - pl.taken], ["lessons", s.lesson_count],
+  ].map(([k, x]) => `<div class="counter"><b>${x}</b><span>${k}</span></div>`).join("");
+  const steps = [["launches seen", s.launches_seen], ["pairs scanned", pl.scanned], ["passed filter", pl.passed_filter],
+    ["passed safety", pl.passed_safety], ["agents asked", pl.evaluated], ["consensus", pl.consensus], ["trades opened", pl.taken]];
+  const max = Math.max(1, ...steps.map(x => x[1]));
+  document.getElementById("funnel").innerHTML = steps.map(([k, x]) =>
+    `<div class="f"><span class="muted">${k}</span><div class="bar"><i style="width:${Math.max(1, Math.log10(x + 1) / Math.log10(max + 1) * 100).toFixed(0)}%"></i></div><b style="text-align:right">${Number(x).toLocaleString()}</b></div>`).join("")
+    + `<div class="muted" style="font-size:11px">watchlist ${pl.size} (${pl.hot} hot) · queue ${pl.queue}</div>`;
+
+  document.getElementById("trades").innerHTML = `<tr><th>Coin</th><th>Ver</th><th>Conf</th><th>Size</th><th>Held</th><th>Return</th><th>Peak</th><th>Exit</th><th>PnL</th><th>Closed</th></tr>` +
+    (s.trades.length ? s.trades.map(x => `<tr><td><b>${esc(x.symbol)}</b></td><td>${esc(x.version)}</td><td>${x.confidence}</td>
+      <td>${num(x.size_sol, 4)}</td><td>${num((x.closed_at - x.opened_at) / 60, 1)}m</td>
+      <td class="${cls(x.return_pct)}">${pct(x.return_pct, 2)}</td><td>${pct(x.peak_return_pct)}</td><td>${esc(x.exit_reason)}</td>
+      <td class="${cls(x.pnl_sol)}">${sol(x.pnl_sol, 5)}</td><td class="muted">${ago(x.closed_at)}</td></tr>`).join("")
+      : `<tr><td colspan="10" class="empty">No closed trades yet</td></tr>`);
+
+  document.getElementById("versions").innerHTML = `<tr><th>Version</th><th>Closed</th><th>Wins</th><th>Fee-adj. PnL</th><th></th></tr>` +
+    s.versions.map(x => `<tr><td><b>${esc(x.version)}</b></td><td>${x.closed ?? "–"}</td>
+      <td>${x.wins === null ? "–" : `${x.wins} (${pctOf(x.hit)})`}</td>
+      <td class="${cls(x.pnl_sol)}">${x.pnl_sol === null ? "–" : sol(x.pnl_sol)}</td><td class="muted">${esc(x.note)}</td></tr>`).join("");
+
+  const cal = s.calibration;
+  document.getElementById("calib").innerHTML = `<tr><th>Score</th><th>Trades</th><th>Hit</th><th>Avg return</th><th>PnL</th></tr>` +
+    Object.entries(cal).filter(([k]) => k.includes("-")).map(([k, x]) => `<tr><td>${k}</td><td>${x.n}</td><td>${x.n ? pctOf(x.hit) : "–"}</td>
+      <td class="${cls(x.avg_return_pct)}">${pct(x.avg_return_pct)}</td><td class="${cls(x.pnl_sol)}">${x.n ? sol(x.pnl_sol) : "–"}</td></tr>`).join("");
+  document.getElementById("brier").textContent = cal.brier_tp !== undefined
+    ? `Brier score (score/100 vs reaching +TP): ${num(cal.brier_tp, 3)} · base rate ${pctOf(cal.base_rate_tp)}. If 80+ is not better than 70–79 after the test, go back to fixed size.`
+    : "Calibration fills in as trades close.";
+
+  document.getElementById("blackboard").innerHTML = s.blackboard.length ? s.blackboard.map(x => `
+    <div class="row"><div class="meta"><b style="color:var(--text)">${esc(x.symbol || x.mint.slice(0, 6))}</b> · ${esc(x.agent.toUpperCase())} · ${esc(x.topic)} · ${ago(x.ts)}</div>${esc(x.note)}</div>`).join("")
+    : `<div class="empty">Nothing discussed yet</div>`;
+  document.getElementById("candidates").innerHTML = s.candidates.length ? s.candidates.map(x => `
+    <div class="row"><div class="meta"><span class="${x.passed ? "pos" : "neg"}">${x.passed ? "PASS" : "REJECT"}</span> · <b style="color:var(--text)">${esc(x.symbol || x.mint.slice(0, 6))}</b> · ${esc(x.stage)} · liq $${Math.round(x.liquidity_usd || 0).toLocaleString()} · ${ago(x.ts)}</div>${esc((x.reasons || []).join("; "))}</div>`).join("")
+    : `<div class="empty">No candidates yet</div>`;
+
+  const c = s.costs, bs = c.by_service || {};
+  const rows = Object.entries(bs).map(([k, x]) => `<tr><td>${esc(k)}</td><td>${x.units.toLocaleString()}</td><td>$${num(x.usd, 3)}</td></tr>`).join("");
+  document.getElementById("costs").innerHTML = `<table><tr><th>Service</th><th>Units</th><th>USD</th></tr>${rows || `<tr><td colspan="3" class="empty">No spend recorded</td></tr>`}</table>
+    <p style="margin:10px 0 0">Operating cost this test (incl. hosting): <b>$${num(c.operating_usd, 2)}</b> vs paper PnL <b class="${cls(c.pnl_usd)}">${c.pnl_usd === null ? "–" : "$" + num(c.pnl_usd, 2)}</b></p>
+    ${c.x_budget ? `<p class="muted" style="margin:6px 0 0;font-size:12px">X budget: $${num(c.x_budget.hour_usd, 2)}/${c.x_budget.hour_cap} this hour · $${num(c.x_budget.day_usd, 2)}/${c.x_budget.day_cap} today ${c.x_budget.exhausted ? '<span class="neg">EXHAUSTED</span>' : ""}</p>` : ""}`;
+
+  document.getElementById("reports").innerHTML = s.reports.length ? s.reports.map(r => {
+    const x = r.body.summary || {};
+    return `<div class="row"><div class="meta">${esc(r.version)} · ${esc(r.kind)} · ${r.trades} trades · ${ago(r.ts)}</div>
+      hit ${pctOf(x.hit)} (CI ${pctOf((x.ci95 || [])[0])}–${pctOf((x.ci95 || [])[1])}) · PF ${num(x.profit_factor)} · PnL ${sol(x.pnl_sol)} · verdict ${esc(r.body.verdict)}</div>`;
+  }).join("") : `<div class="empty">First report after ${10} closed trades</div>`;
+}
+
+async function tick() {
+  try {
+    const r = await fetch("/api/state" + (TOKEN ? "?token=" + encodeURIComponent(TOKEN) : ""));
+    if (r.ok) render(await r.json());
+    else document.getElementById("health").textContent = r.status === 401 ? "● add ?token=" : "● starting";
+  } catch (e) { document.getElementById("health").textContent = "● offline"; }
+}
+tick(); setInterval(tick, 3000);
+</script>
+</body>
+</html>

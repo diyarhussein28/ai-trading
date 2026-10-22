@@ -1,0 +1,10 @@
+.venv
+.git
+data
+tests
+graphify-out
+.env
+*.md
+__pycache__
+.pytest_cache
+app/graphify-out

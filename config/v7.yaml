@@ -1,0 +1,132 @@
+# V7 - frozen configuration for the 100-trade test (blueprint sections 9.3, 10, 11, 16).
+# Change ONE thing per version. Bump `version` whenever anything below changes.
+version: V7
+mode: paper              # paper | live  (live also needs ALLOW_LIVE=yes and is NOT implemented - see section 17)
+team: claude
+chain: solana
+quote: SOL
+
+sizing:
+  base_size_sol: 0.0205          # seen in the video
+  min_confidence_to_trade: 70
+  size_multiplier:               # linear map confidence -> multiplier
+    at_70: 0.5
+    at_85: 1.0
+    at_100: 1.5
+  max_size_sol: 0.035
+  max_open_positions: 3
+  max_daily_loss_sol: 0.06
+  paper_capital_sol: 0.5         # reference capital for drawdown limits (section 16.2)
+
+risk:
+  cooldown_minutes_after_exit: 60      # never re-buy the same coin right after exiting (the "darwin twice" problem)
+  kill_switch_consecutive_losses: 3    # section 17.2: 3 losses in a row at <= -20% ...
+  kill_switch_loss_pct: -20
+  kill_switch_pause_hours: 24          # ... pause entries for 24h
+  auto_stop_on_early_stop_rule: true   # section 16.3: stop new entries if PF < 0.8 after 40 trades or DD > 35%
+
+discovery:
+  pumpportal: true                     # new launches + migrations over WebSocket
+  dexscreener_profiles: true           # /token-profiles/latest/v1 and /token-boosts/latest/v1
+  profiles_poll_seconds: 30
+  new_token_first_check_minutes: 3     # pump.fun launches are re-checked on a backoff schedule
+  recheck_schedule_minutes: [3, 6, 10, 15, 25, 40, 60, 90, 120, 180]
+  migration_recheck_seconds: 45        # migrated / profiled tokens are hotter: re-check often
+  max_watchlist: 3000
+  scan_batch_size: 30                  # DexScreener accepts up to 30 addresses per call
+  scan_interval_seconds: 4
+  reevaluate_minutes: 20               # don't ask the agents about the same coin more often than this
+
+filters:
+  min_liquidity_usd: 10000
+  min_volume_m5_usd: 5000
+  min_buy_sell_ratio_m5: 1.2
+  min_age_minutes: 3                   # avoid first-seconds sniper chaos
+  max_age_minutes: 180
+  max_price_change_m5_pct: 150         # already parabolic = late
+  min_price_change_m5_pct: -15         # actively dumping = no
+
+safety:
+  require_mint_authority_revoked: true
+  require_freeze_authority_revoked: true
+  max_top10_holders_pct: 30            # pool / AMM / locker accounts excluded
+  max_dev_holding_pct: 5
+  max_bundle_pct: 20                   # insider-flagged holders (RugCheck graph) as bundle proxy
+  min_lp_locked_pct: 90                # pump.fun AMM pools burn LP -> 100%
+  min_holders: 50
+  min_quote_liquidity_usd: 5000       # real SOL in the pool (RugCheck lp.quoteUSD) - catches dev dumps DexScreener hides
+  block_on_rugcheck_danger: true      # any RugCheck risk at level "danger" blocks the trade
+  block_if_rugged_flag: true
+  block_on_api_error: true             # any safety data failure -> BLOCK
+  cache_seconds: 300
+  recheck_blocked_minutes: 10          # a blocked coin is not re-checked for this long
+  minor_flag_margin: 0.8               # within 80% of a hard limit -> minor flag (-10 confidence each)
+
+consensus:
+  rule: unanimous
+  professor_veto: true
+  short_circuit: true                  # if Detective or Sniper says PASS, skip the Professor call (saves LLM cost)
+  weights: {professor: 0.45, sniper: 0.30, detective: 0.25}
+  penalty_per_minor_flag: 10
+
+exits:
+  take_profit_pct: 40
+  stop_loss_pct: -22
+  trailing: {activate_at_pct: 20, trail_pct: 12}
+  time_stop_minutes: 10
+  rug_liquidity_drop_pct: 50           # liquidity falls 50% from entry -> exit immediately
+  missing_data_polls_before_rug_exit: 5
+  missing_data_exit_haircut_pct: 50    # if the pair vanishes, assume we got out at -50% of last price
+
+costs:
+  fee_pct_per_side: 1.0
+  slippage_pct_per_side: 2.0
+  network_fee_sol: 0.0001
+  model_price_impact: true             # constant-product impact ~ 2 * size_usd / liquidity_usd
+  hosting_usd_per_month: 5.0           # Railway estimate, amortised into operating costs (section 16.2)
+
+social:
+  enabled: true                        # needs X_BEARER_TOKEN (official X API v2). Never cookies/scraping.
+  max_posts_per_token: 25              # X recent search accepts 10-100
+  cache_minutes: 10
+  est_usd_per_post: 0.005              # set to YOUR X API price; the guard budgets with this estimate
+  hourly_budget_usd: 2.0
+  daily_budget_usd: 20.0
+  on_missing: pass                     # pass  = Detective & Sniper vote PASS (blueprint default: no social data, no trade)
+                                       # degrade = judge from DexScreener profile socials only, score capped at 75
+  big_account_followers: 10000
+  aged_account_days: 30
+
+agents:
+  backend: llm                         # llm (Claude) | rules (deterministic, no API key - for demo/testing)
+  vote_model_env: CLAUDE_VOTE_MODEL    # default claude-haiku-5-5 (fast voter, per section 9.1)
+  review_model_env: CLAUDE_REVIEW_MODEL  # default claude-opus-5-5 (post-mortems)
+  vote_effort: low
+  timeout_seconds: 45
+  max_concurrent_evaluations: 2
+
+lessons:
+  post_mortem: true                    # write a lesson after every closed trade
+  inject: false                        # section 16.1: during the 100-trade test lessons are RECORDED, not injected
+  max_injected_per_agent: 10
+
+test:
+  planned_trades: 100
+  checkpoint_every: 10
+  min_profit_factor: 1.5
+  max_drawdown_pct_of_capital: 25
+  max_single_trade_profit_share: 0.30
+  early_stop_min_trades: 40
+  early_stop_profit_factor: 0.8
+  early_stop_drawdown_pct: 35
+
+llm_pricing_usd_per_mtok:              # for the cost ledger (input, output)
+  claude-haiku-5-5: [0.10, 0.50]
+  claude-sonnet-5-5: [2.00, 10.00]
+  claude-opus-5-5: [4.00, 20.00]
+
+runtime:
+  price_poll_seconds: 3
+  single_instance: true
+  heartbeat_stale_seconds: 120         # /health fails if the pipeline stalls this long
+  retention_days: 14                   # prune candidates/blackboard/snapshots older than this
