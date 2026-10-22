@@ -1,284 +1,410 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Memecoin Agents</title>
+<title>وكلاء عملات الميم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0B0C11; --panel: #12141B; --panel2: #171A23; --line: #232735; --text: #E9ECF2; --muted: #8A91A5;
     --green: #20C878; --red: #F85860; --yellow: #F0B840; --claude: #E08858; --blue: #6AA8FF;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 "IBM Plex Sans Arabic", "Geeza Pro", "Segoe UI", system-ui, sans-serif; }
   body::before { content: ""; position: fixed; inset: 0; pointer-events: none;
-    background: radial-gradient(900px 400px at 10% -10%, #0C1516 0%, transparent 70%); }
+    background: radial-gradient(900px 400px at 90% -10%, #0C1516 0%, transparent 70%); }
+  .num, .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; font-variant-numeric: tabular-nums; }
   header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
     padding: 12px 16px; background: rgba(11,12,17,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  .brand { font-weight: 800; letter-spacing: .3px; }
+  .brand { font-weight: 700; }
   .brand span { color: var(--claude); }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px;
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12.5px;
     font-weight: 700; border: 1px solid var(--line); background: var(--panel2); white-space: nowrap; }
   .pill.paper { color: var(--yellow); border-color: #4a3d1c; }
   .pill.ok { color: var(--green); border-color: #1d4a36; }
   .pill.bad { color: var(--red); border-color: #5a2328; }
-  .stat { color: var(--muted); font-size: 12px; white-space: nowrap; }
-  .stat b { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .stat { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+  .stat b { color: var(--text); font-size: 14px; }
   main { max-width: 1320px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
   .grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
-  .card h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .card h2 { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--text); }
+  .card .hint { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
   .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
-  .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
-  @media (max-width: 980px) { .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; } }
+  .span-7 { grid-column: span 7; } .span-12 { grid-column: span 12; }
+  @media (max-width: 980px) { .span-4, .span-5, .span-6, .span-7 { grid-column: span 12; } }
   .banner { border-radius: 12px; padding: 10px 14px; border: 1px solid #5a4a1c; background: #1d1a10; color: var(--yellow); }
   .banner.red { border-color: #5a2328; background: #1d1012; color: var(--red); }
   .agent { display: flex; flex-direction: column; gap: 8px; }
   .agent .top { display: flex; align-items: center; gap: 10px; }
-  .avatar { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: var(--panel2); border: 1px solid var(--line); }
-  .agent .name { font-weight: 800; }
-  .agent .role { color: var(--muted); font-size: 12px; }
-  .agent .status { margin-left: auto; }
-  .thought { color: #cdd2de; font-size: 13px; min-height: 38px; }
-  .lesson { font-size: 12px; color: var(--muted); border-left: 2px solid var(--claude); padding-left: 8px; }
+  .avatar { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 21px; background: var(--panel2); border: 1px solid var(--line); }
+  .agent .name { font-weight: 700; font-size: 16px; }
+  .agent .role { color: var(--muted); font-size: 12.5px; }
+  .agent .status { margin-inline-start: auto; }
+  .thought { color: #cdd2de; font-size: 13.5px; min-height: 44px; }
+  .lesson { font-size: 12.5px; color: var(--muted); border-inline-start: 2px solid var(--claude); padding-inline-start: 8px; }
   .counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .counter { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
-  .counter b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .counter b { display: block; font-size: 22px; }
   .counter span { color: var(--muted); font-size: 12px; }
   .test { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center; }
   @media (max-width: 520px) { .test { grid-template-columns: 1fr; justify-items: center; } }
   .kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .kv div { background: var(--panel2); border-radius: 10px; padding: 8px 10px; border: 1px solid var(--line); }
-  .kv span { display: block; color: var(--muted); font-size: 11px; }
-  .kv b { font-variant-numeric: tabular-nums; }
-  .crit { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
-  .crit li { display: flex; gap: 8px; } .crit .d { color: var(--muted); margin-left: auto; text-align: right; }
-  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+  .kv span { display: block; color: var(--muted); font-size: 11.5px; }
+  .crit { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+  .crit li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; }
+  .crit .d { grid-column: 2; color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: start; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-size: 12px; font-weight: 600; }
   .scroll { overflow-x: auto; }
   .pos { color: var(--green); } .neg { color: var(--red); } .warn { color: var(--yellow); } .muted { color: var(--muted); }
-  .feed { max-height: 360px; overflow-y: auto; display: grid; gap: 6px; }
-  .feed .row { font-size: 12.5px; padding: 6px 8px; background: var(--panel2); border-radius: 8px; border: 1px solid var(--line); }
-  .feed .meta { color: var(--muted); font-size: 11px; }
+  .feed { max-height: 380px; overflow-y: auto; display: grid; gap: 6px; }
+  .feed .row { font-size: 13px; padding: 6px 10px; background: var(--panel2); border-radius: 8px; border: 1px solid var(--line); }
+  .feed .meta { color: var(--muted); font-size: 11.5px; }
   .position { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; padding: 10px; background: var(--panel2); border-radius: 12px; border: 1px solid var(--line); margin-bottom: 10px; }
-  .bar { height: 8px; border-radius: 99px; background: #262a38; overflow: hidden; }
+  .bar { height: 8px; border-radius: 99px; background: #262a38; overflow: hidden; direction: ltr; }
   .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--yellow), var(--green)); }
   .funnel { display: grid; gap: 6px; }
-  .funnel .f { display: grid; grid-template-columns: 130px 1fr 70px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .funnel .f { display: grid; grid-template-columns: 120px 1fr 70px; gap: 8px; align-items: center; font-size: 13px; }
   .funnel .f .bar i { background: var(--blue); }
   a { color: var(--blue); text-decoration: none; }
   .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
-  button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  details.help { font-size: 13px; color: var(--muted); }
+  details.help summary { cursor: pointer; color: var(--text); }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">🤖 Memecoin Agents · <span id="version">V7</span></div>
-  <span class="pill paper" id="mode">PAPER</span>
-  <span class="stat">PnL today <b id="pnlToday">–</b></span>
-  <span class="stat">launches seen <b id="launches">–</b></span>
-  <span class="stat">uptime <b id="uptime">–</b></span>
-  <span class="stat">SOL <b id="sol">–</b></span>
+  <div class="brand">🤖 وكلاء عملات الميم · <span id="version" class="ltr">V7</span></div>
+  <span class="pill paper" id="mode">ورقي</span>
+  <span class="stat">ربح اليوم <b id="pnlToday">–</b></span>
+  <span class="stat">إطلاقات شافها <b id="launches">–</b></span>
+  <span class="stat">مدة التشغيل <b id="uptime">–</b></span>
+  <span class="stat">سعر SOL <b id="sol">–</b></span>
   <span class="pill" id="health">…</span>
   <span class="stat" id="backend"></span>
 </header>
 <main>
   <div id="banners" class="grid"></div>
 
+  <section class="card">
+    <details class="help">
+      <summary>كيف يشتغل البوت؟ (اضغط للشرح)</summary>
+      <p>يراقب كل عملة جديدة على pump.fun. أول شيء يفحصها بفلتر رقمي: السيولة، والحجم، والمشترين أكثر من البايعين. بعدها يفحص الأمان: هل المطوّر يقدر يطبع عملات أو يجمّد محفظتك، وكم يملك أكبر الحاملين، وهل المسبح فيه SOL حقيقي. العملات اللي تعدّي الفحصين يحكم عليها ثلاث وكلاء: <b>المحقق</b> يقرأ مجتمع X، و<b>القنّاص</b> يدوّر على حسابات كبيرة وأخبار، و<b>البروفيسور</b> يحلل البيانات وعنده القرار الأخير. الشراء ما يصير إلا إذا الثلاثة قالوا "شراء" ودرجة الثقة 70 أو أكثر، والدرجة تحدد حجم الصفقة. كل الصفقات <b>ورقية (فلوس وهمية)</b>.</p>
+    </details>
+  </section>
+
   <section class="grid" id="agents"></section>
 
   <section class="grid">
     <div class="card span-5">
-      <h2>The real test · 100 trades</h2>
+      <h2>الاختبار الحقيقي · 100 صفقة</h2>
+      <p class="hint">ما نحكم على الإستراتيجية إلا بعد 100 صفقة، وبشروط واضحة تحت.</p>
       <div class="test">
-        <svg id="ring" viewBox="0 0 120 120" width="140" height="140" aria-label="progress"></svg>
+        <svg id="ring" viewBox="0 0 120 120" width="140" height="140" aria-label="التقدم"></svg>
         <div>
-          <div style="margin-bottom:8px">Verdict: <b id="verdict">–</b></div>
+          <div style="margin-bottom:8px">الحكم: <b id="verdict">–</b></div>
           <div class="kv" id="testkv"></div>
         </div>
       </div>
       <ul class="crit" id="criteria"></ul>
     </div>
     <div class="card span-7">
-      <h2>Open positions</h2>
+      <h2>الصفقات المفتوحة الحين</h2>
+      <p class="hint">العداد = درجة الثقة. الشريط = حجم الصفقة. الرقم الملوّن = الربح أو الخسارة الحالية بعد الرسوم.</p>
       <div id="positions"></div>
-      <h2 style="margin-top:14px">Pipeline</h2>
+      <h2 style="margin-top:14px">مسار الفلترة</h2>
+      <p class="hint">من آلاف العملات، كم وحدة عدّت كل مرحلة.</p>
       <div class="counters" id="counters" style="margin-bottom:12px"></div>
       <div class="funnel" id="funnel"></div>
     </div>
   </section>
 
   <section class="card">
-    <h2>Closed trades (this version)</h2>
+    <h2>الصفقات المغلقة (هذي النسخة)</h2>
     <div class="scroll"><table id="trades"></table></div>
   </section>
 
   <section class="grid">
-    <div class="card span-6"><h2>All versions · wins</h2><div class="scroll"><table id="versions"></table></div></div>
-    <div class="card span-6"><h2>Confidence calibration</h2><div class="scroll"><table id="calib"></table></div>
-      <p class="muted" style="font-size:12px;margin:8px 0 0" id="brier"></p></div>
+    <div class="card span-6"><h2>كل النسخ · الصفقات الرابحة</h2>
+      <p class="hint">نتائج النسخ من الفيديو، وتحتها نتيجتك المباشرة.</p>
+      <div class="scroll"><table id="versions"></table></div></div>
+    <div class="card span-6"><h2>هل درجة الثقة صادقة؟ (المعايرة)</h2>
+      <p class="hint">لو الدرجات العالية فعلاً تربح أكثر، الدرجة مفيدة. لو لا، نرجع لحجم ثابت.</p>
+      <div class="scroll"><table id="calib"></table></div>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0" id="brier"></p></div>
   </section>
 
   <section class="grid">
-    <div class="card span-7"><h2>Team blackboard · every token the agents discussed</h2><div class="feed" id="blackboard"></div></div>
-    <div class="card span-5"><h2>Candidate board</h2><div class="feed" id="candidates"></div></div>
+    <div class="card span-7"><h2>لوحة النقاش · كل عملة ناقشها الوكلاء</h2><div class="feed" id="blackboard"></div></div>
+    <div class="card span-5"><h2>العملات المرشّحة · ليش انقبلت أو انرفضت</h2><div class="feed" id="candidates"></div></div>
   </section>
 
   <section class="grid">
-    <div class="card span-6"><h2>Costs vs PnL</h2><div id="costs"></div></div>
-    <div class="card span-6"><h2>Checkpoint reports</h2><div class="feed" id="reports"></div></div>
+    <div class="card span-6"><h2>التكاليف مقابل الربح</h2>
+      <p class="hint">لو التكاليف أكبر من الربح الورقي، الإستراتيجية خسرانة حتى لو الصفقات رابحة.</p>
+      <div id="costs"></div></div>
+    <div class="card span-6"><h2>تقارير كل 10 صفقات</h2><div class="feed" id="reports"></div></div>
   </section>
 </main>
 <script>
 const qs = new URLSearchParams(location.search);
 const TOKEN = qs.get("token") || "";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const num = (x, d = 2) => (x === null || x === undefined || x === "inf") ? (x === "inf" ? "∞" : "–") : Number(x).toFixed(d);
-const pct = (x, d = 1) => x === null || x === undefined ? "–" : (x > 0 ? "+" : "") + Number(x).toFixed(d) + "%";
-const pctOf = (x, d = 0) => x === null || x === undefined ? "–" : (Number(x) * 100).toFixed(d) + "%";
+const N = s => `<span class="num">${s}</span>`;
+const num = (x, d = 2) => (x === null || x === undefined) ? "–" : x === "inf" ? "∞" : Number(x).toFixed(d);
+const pct = (x, d = 1) => x === null || x === undefined ? "–" : N((x > 0 ? "+" : "") + Number(x).toFixed(d) + "%");
+const pctOf = (x, d = 0) => x === null || x === undefined ? "–" : N((Number(x) * 100).toFixed(d) + "%");
 const cls = x => x > 0 ? "pos" : x < 0 ? "neg" : "";
-const sol = (x, d = 4) => x === null || x === undefined ? "–" : (x > 0 ? "+" : "") + Number(x).toFixed(d) + " SOL";
-const ago = ts => { const s = Date.now() / 1000 - ts; return s < 60 ? Math.round(s) + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; };
-const AV = { detective: "🕵️", sniper: "🎯", professor: "🧪" };
+const sol = (x, d = 4) => x === null || x === undefined ? "–" : N((x > 0 ? "+" : "") + Number(x).toFixed(d) + " SOL");
+const ago = ts => { const s = Date.now() / 1000 - ts;
+  return s < 60 ? `قبل ${Math.round(s)} ثانية` : s < 3600 ? `قبل ${Math.round(s / 60)} دقيقة` : `قبل ${Math.round(s / 3600)} ساعة`; };
 
+// ---------------------------------------------------------------- Arabic for engine-generated text
+const AGENTS = {
+  detective: { name: "المحقق", role: "الكشّاف", beat: "يقرأ مجتمع X", icon: "🕵️" },
+  sniper: { name: "القنّاص", role: "الصيّاد", beat: "حسابات كبيرة وأخبار", icon: "🎯" },
+  professor: { name: "البروفيسور", role: "المحلل", beat: "بيانات السلسلة · القرار الأخير", icon: "🧪" },
+  safety: { name: "بوابة الأمان", icon: "🛡️" }, broker: { name: "الوسيط", icon: "💼" },
+};
+const agentName = k => (AGENTS[k] || {}).name || k;
+const STATUS = { IDLE: "ينتظر", SCANNING: "يجمع بيانات", VOTING: "يصوّت" };
+const VOTE = { BUY: "شراء", PASS: "رفض" };
+const EXIT = { TP: "جني ربح", SL: "وقف خسارة", TRAIL: "وقف متحرك", TIME: "انتهى الوقت", RUG: "سحب سيولة" };
+const VERDICT = { "IN PROGRESS": "قيد التنفيذ", PASSED: "ناجح ✅", FAILED: "فاشل ❌", "STOPPED EARLY": "متوقف مبكراً 🛑", INCONCLUSIVE: "غير حاسم ⚠️" };
+const STAGE = { filter: "الفلتر الرقمي", safety: "فحص الأمان", risk: "إدارة المخاطر", agents: "الوكلاء" };
+const SERVICE = { llm: "الذكاء الاصطناعي (Claude)", x_api: "X API", rpc: "Solana RPC" };
+const KIND = { checkpoint: "تقرير مرحلي", final: "التقرير النهائي" };
+const CRIT = {
+  "Wilson 95% lower bound > breakeven hit rate": "أقل نسبة إصابة محتملة أعلى من نسبة التعادل",
+  "Profit factor after costs >= 1.5": "Profit Factor بعد التكاليف 1.5 أو أكثر",
+  "Max drawdown <= 25% of paper capital": "أكبر تراجع ما يتعدى 25% من رأس المال",
+  "No single trade > 30% of profit": "ما فيه صفقة وحدة أكثر من 30% من الربح",
+  "Calibration: score 80+ beats 70-79": "المعايرة: صفقات درجة 80+ أفضل من 70–79",
+  "Operating costs (LLM + X + RPC + hosting) < paper profit": "التكاليف (الذكاء الاصطناعي + X + الاستضافة) أقل من الربح",
+};
+const RULES = [
+  // market filter
+  [/^low liquidity \$(.+)$/, "سيولة قليلة ($$$1)"],
+  [/^low 5m volume \$(.+)$/, "حجم تداول آخر 5 دقائق قليل ($$$1)"],
+  [/^buyers do not lead \((\d+)\/(\d+)\)$/, "المشترين مو أكثر من البايعين ($1 شراء / $2 بيع)"],
+  [/^age out of window \((.+)m\)$/, "عمر العملة خارج النطاق ($1 دقيقة)"],
+  [/^already parabolic \(\+(.+)% 5m\)$/, "طايرة أصلاً (+$1% في 5 دقائق)، متأخرين"],
+  [/^dumping \((.+)% 5m\)$/, "تنهار ($1% في 5 دقائق)"],
+  [/^no price$/, "ما فيه سعر"],
+  // safety gate
+  [/^BLOCK: safety data unavailable$/, "مرفوضة: ما قدرنا نجيب بيانات الأمان"],
+  [/^flagged as rugged$/, "مصنّفة إنها مسحوبة السيولة"],
+  [/^mint authority active$/, "المطوّر يقدر يطبع عملات جديدة"],
+  [/^freeze authority active$/, "المطوّر يقدر يجمّد محفظتك"],
+  [/^top10 concentrated \((.+)%\)$/, "أكبر 10 حاملين يملكون $1% (كثير)"],
+  [/^dev holds too much \((.+)%\)$/, "المطوّر يملك $1% (كثير)"],
+  [/^bundled launch \((.+)% insiders\)$/, "شراء مجمّع: المطّلعين يملكون $1%"],
+  [/^LP not locked \((.+)%\)$/, "السيولة مو مقفلة (المقفل $1% بس)"],
+  [/^too few holders \((.+)\)$/, "عدد الحاملين قليل ($1)"],
+  [/^transfer fee \(token-2022 tax\)$/, "فيها ضريبة على التحويل"],
+  [/^pool holds only \$(.+) of SOL$/, "المسبح فيه $$$1 بس من SOL الحقيقي"],
+  [/^rugcheck danger: (.+)$/, "تحذير خطير من RugCheck: $1"],
+  // risk
+  [/^paused by operator$/, "موقوف يدوياً"],
+  [/^test halted: (.+)$/, "الاختبار متوقف: $1"],
+  [/^already holding this coin$/, "عندنا صفقة مفتوحة على هذي العملة"],
+  [/^max open positions \((\d+)\)$/, "وصلنا الحد الأقصى للصفقات المفتوحة ($1)"],
+  [/^daily loss limit hit \((.+) SOL\)$/, "وصلنا حد الخسارة اليومي ($1 SOL)"],
+  [/^cooldown after recent exit on this coin$/, "طلعنا من هذي العملة قريب، ننتظر قبل ما ندخلها ثاني"],
+  [/^kill switch: (\d+) losses in a row, paused until (.+) UTC$/, "مفتاح الإيقاف: $1 خسائر ورا بعض، متوقف لين $2 UTC"],
+  // decisions
+  [/^consensus but confidence (\d+) < (\d+)$/, "اتفقوا، لكن الثقة $1 أقل من $2"],
+  [/^consensus, confidence (\d+) -> (.+) SOL$/, "اتفقوا ✅ الثقة $1 ← حجم الصفقة $2 SOL"],
+  [/^no fresh price$/, "ما فيه سعر محدّث"],
+  [/^already open$/, "مفتوحة أصلاً"],
+  [/^moved (.+)% (.*)$/, "السعر تحرّك $1% أثناء التفكير"],
+  // early stop
+  [/^PF (.+) < (.+) after (\d+) trades$/, "Profit Factor $1 أقل من $2 بعد $3 صفقة"],
+  [/^drawdown (.+)% > (.+)%$/, "التراجع $1% أكبر من $2%"],
+  // criteria details
+  [/^lower (.+) vs breakeven (.+)$/, "الأقل المحتمل $1 مقابل التعادل $2"],
+  [/^needs wins and losses$/, "يحتاج صفقات رابحة وخاسرة"],
+  [/^PF None$/, "ما فيه بيانات كافية"],
+  [/^PF (.+)$/, "Profit Factor = $1"],
+  [/^(.+)% of (.+) SOL$/, "$1% من رأس مال $2 SOL"],
+  [/^largest trade = (.+)% of profit$/, "أكبر صفقة = $1% من الربح"],
+  [/^no net profit yet$/, "ما فيه ربح صافي بعد"],
+  [/^80\+: (.+) avg \(n=(\d+)\) vs 70-79: (.+) \(n=(\d+)\)$/, "80+: متوسط $1 ($2 صفقة) مقابل 70–79: $3 ($4 صفقة)"],
+  [/^needs >= 5 trades in each bucket$/, "يحتاج 5 صفقات على الأقل في كل فئة"],
+  [/^costs \$(.+) vs profit \$(.+)$/, "التكاليف $$$1 مقابل الربح $$$2"],
+  [/^costs \$(.+)$/, "التكاليف $$$1"],
+  // blackboard topics
+  [/^vote (BUY|PASS) (\d+)$/, (m, v, s) => `صوّت ${VOTE[v]} · الدرجة ${s}`],
+  [/^BLOCK$/, "رفض أمني"], [/^OPEN$/, "فتح صفقة"], [/^CLOSE$/, "إغلاق صفقة"], [/^lesson$/, "درس جديد"],
+];
+function tr(s) {
+  if (s === null || s === undefined) return "";
+  s = String(s).trim();
+  for (const [re, rep] of RULES) if (re.test(s)) return s.replace(re, rep);
+  return s;
+}
+function trNote(s) {  // decision notes: "no consensus: detective PASS, ..." and " | skipped: <reason>"
+  return String(s || "").split(" | ").map(part => {
+    let m = part.match(/^no consensus: (.+)$/);
+    if (m) return "ما اتفقوا: " + m[1].split(", ").map(x => { const [a, v] = x.split(" "); return `${agentName(a)} ${VOTE[v] || v}`; }).join("، ");
+    m = part.match(/^skipped: (.+)$/);
+    if (m) return "تم التخطي: " + tr(m[1]);
+    return tr(part);
+  }).join(" · ");
+}
+const trReasons = list => (list || []).map(x => String(x).split("; ").map(tr).join("؛ ")).map(trNote).join("؛ ");
+
+// ---------------------------------------------------------------- widgets
 function gauge(score) {
   const a = Math.PI * (1 - Math.max(0, Math.min(100, score)) / 100);
   const x = 60 + 46 * Math.cos(a), y = 60 - 46 * Math.sin(a);
-  return `<svg viewBox="0 0 120 70" width="120" height="70" aria-label="confidence ${score}">
+  return `<svg viewBox="0 0 120 70" width="120" height="70" aria-label="الثقة ${score}" style="direction:ltr">
     <defs><linearGradient id="g${score}" x1="0" x2="1"><stop offset="0" stop-color="#F85860"/><stop offset=".55" stop-color="#F0B840"/><stop offset="1" stop-color="#20C878"/></linearGradient></defs>
     <path d="M14 60 A46 46 0 0 1 106 60" fill="none" stroke="url(#g${score})" stroke-width="10" stroke-linecap="round"/>
     <line x1="60" y1="60" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#E9ECF2" stroke-width="3" stroke-linecap="round"/>
     <circle cx="60" cy="60" r="5" fill="#E9ECF2"/>
     <text x="60" y="44" text-anchor="middle" fill="#E9ECF2" font-size="15" font-weight="800">${score}</text></svg>`;
 }
-
 function ring(n, planned) {
   const r = 50, c = 2 * Math.PI * r, f = Math.min(1, n / planned);
   return `<circle cx="60" cy="60" r="${r}" fill="none" stroke="#232735" stroke-width="10"/>
     <circle cx="60" cy="60" r="${r}" fill="none" stroke="#F0B840" stroke-width="10" stroke-linecap="round"
       stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 60 60)"/>
     <text x="60" y="58" text-anchor="middle" fill="#E9ECF2" font-size="24" font-weight="800">${n}</text>
-    <text x="60" y="78" text-anchor="middle" fill="#8A91A5" font-size="12">/ ${planned} trades</text>`;
+    <text x="60" y="80" text-anchor="middle" fill="#8A91A5" font-size="12">من ${planned} صفقة</text>`;
 }
 
+// ---------------------------------------------------------------- render
 function render(s) {
   document.getElementById("version").textContent = s.version;
-  const mode = document.getElementById("mode");
-  mode.textContent = s.demo ? "DEMO · PAPER" : s.mode;
+  document.getElementById("mode").textContent = s.demo ? "تجريبي · ورقي" : (s.mode === "PAPER" ? "ورقي (فلوس وهمية)" : s.mode);
   document.getElementById("pnlToday").innerHTML = `<span class="${cls(s.pnl_today_sol)}">${sol(s.pnl_today_sol)}</span>`;
-  document.getElementById("launches").textContent = Number(s.launches_seen).toLocaleString();
-  document.getElementById("uptime").textContent = Math.round(s.uptime_min) + "m";
-  document.getElementById("sol").textContent = s.sol_usd ? "$" + num(s.sol_usd, 2) : "–";
+  document.getElementById("launches").innerHTML = N(Number(s.launches_seen).toLocaleString("en"));
+  document.getElementById("uptime").textContent = `${Math.round(s.uptime_min)} دقيقة`;
+  document.getElementById("sol").innerHTML = s.sol_usd ? N("$" + num(s.sol_usd, 2)) : "–";
   const h = document.getElementById("health");
   h.className = "pill " + (s.health.ok ? "ok" : "bad");
-  h.textContent = s.health.ok ? "● healthy" : "● degraded";
-  document.getElementById("backend").textContent = `agents: ${s.backend} · config ${s.config_hash}`;
+  h.textContent = s.health.ok ? "● شغّال بشكل سليم" : "● فيه مشكلة";
+  document.getElementById("backend").textContent =
+    `الوكلاء: ${s.backend === "llm" ? "Claude" : "قواعد ثابتة"} · رقم الإعدادات ${s.config_hash}`;
 
   const b = [];
   if (s.config_drift) b.push(["red", s.config_drift]);
-  if (s.risk.halted) b.push(["red", "Test halted by early-stop rule: " + s.risk.halted]);
-  if (s.risk.paused) b.push(["", "New entries paused by operator."]);
-  if (s.risk.kill_switch_until) b.push(["red", "Kill switch active until " + new Date(s.risk.kill_switch_until * 1000).toLocaleTimeString()]);
+  if (s.risk.halted) b.push(["red", "الاختبار وقف بسبب قاعدة الإيقاف المبكر: " + s.risk.halted.split("; ").map(tr).join("؛ ")]);
+  if (s.risk.paused) b.push(["", "الصفقات الجديدة موقوفة يدوياً."]);
+  if (s.risk.kill_switch_until) b.push(["red", "مفتاح الإيقاف شغّال بعد خسائر متتالية، لين الساعة " + new Date(s.risk.kill_switch_until * 1000).toLocaleTimeString("ar")]);
   if (!s.social_enabled && s.social_policy === "pass" && !s.demo)
-    b.push(["", "X data is off and social.on_missing = pass: Detective & Sniper will PASS on every token, so no trades will open. Add X_BEARER_TOKEN or switch to degrade mode."]);
-  if (s.demo) b.push(["", "Demo mode: synthetic market and rule-based agents. These numbers say nothing about real performance."]);
+    b.push(["", "بيانات X مقفلة، فالمحقق والقنّاص راح يرفضون كل عملة، يعني ما راح تنفتح أي صفقة. أضف X_BEARER_TOKEN أو غيّر social.on_missing إلى degrade."]);
+  if (s.demo) b.push(["", "وضع تجريبي: سوق وهمي ووكلاء بقواعد ثابتة. هذي الأرقام ما تقول شيء عن الربح الحقيقي."]);
   document.getElementById("banners").innerHTML = b.map(([c, t]) => `<div class="banner ${c} span-12">${esc(t)}</div>`).join("");
 
-  document.getElementById("agents").innerHTML = s.agents.map(a => `
-    <div class="card span-4 agent">
-      <div class="top"><div class="avatar">${AV[a.key]}</div>
-        <div><div class="name">${esc(a.title)}</div><div class="role">${esc(a.role)} · ${esc(a.beat)}</div></div>
-        <span class="pill status ${a.status === "IDLE" ? "" : "ok"}">${esc(a.status)}</span></div>
-      <div class="thought">${esc(a.thought || "Waiting for a candidate that clears the filter and the safety gate…")}</div>
-      <div class="muted" style="font-size:12px">BUY ${a.buys} · PASS ${a.passes}</div>
-      ${a.lesson ? `<div class="lesson"><b>Latest lesson:</b> ${esc(a.lesson)}</div>` : ""}
-    </div>`).join("");
+  document.getElementById("agents").innerHTML = s.agents.map(a => {
+    const A = AGENTS[a.key];
+    let thought = a.thought || "ينتظر عملة تعدّي الفلتر وفحص الأمان…";
+    thought = thought.replace(/: (BUY|PASS) (\d+) - /, (m, v, sc) => `: ${VOTE[v]} · الدرجة ${sc} · `);
+    return `<div class="card span-4 agent">
+      <div class="top"><div class="avatar">${A.icon}</div>
+        <div><div class="name">${A.name}</div><div class="role">${A.role} · ${A.beat}</div></div>
+        <span class="pill status ${a.status === "IDLE" ? "" : "ok"}">${STATUS[a.status] || esc(a.status)}</span></div>
+      <div class="thought">${esc(thought)}</div>
+      <div class="muted" style="font-size:12.5px">قال شراء ${N(a.buys)} مرة · رفض ${N(a.passes)} مرة</div>
+      ${a.lesson ? `<div class="lesson"><b>آخر درس:</b> ${esc(a.lesson)}</div>` : ""}
+    </div>`;
+  }).join("");
 
   const t = s.test, sm = t.summary;
   document.getElementById("ring").innerHTML = ring(t.progress, t.planned);
   const v = document.getElementById("verdict");
-  v.textContent = t.verdict;
-  v.className = t.verdict === "PASSED" ? "pos" : t.verdict === "INCONCLUSIVE" ? "warn" : (t.verdict === "FAILED" || t.verdict === "STOPPED EARLY") ? "neg" : "warn";
+  v.textContent = VERDICT[t.verdict] || t.verdict;
+  v.className = t.verdict === "PASSED" ? "pos" : (t.verdict === "FAILED" || t.verdict === "STOPPED EARLY") ? "neg" : "warn";
   document.getElementById("testkv").innerHTML = [
-    ["Hit rate", `${sm.wins}/${sm.n} · ${pctOf(sm.hit)}`],
-    ["95% CI", `${pctOf(sm.ci95[0])}–${pctOf(sm.ci95[1])}`],
-    ["Profit factor", num(sm.profit_factor)],
-    ["PnL", `<span class="${cls(sm.pnl_sol)}">${sol(sm.pnl_sol)}</span>`],
-    ["Avg win / loss", `${pct(sm.avg_win_pct)} / ${pct(sm.avg_loss_pct)}`],
-    ["Max drawdown", num(sm.max_dd_sol, 4) + " SOL"],
+    ["نسبة الإصابة", `${N(sm.wins + "/" + sm.n)} · ${pctOf(sm.hit)}`],
+    ["النطاق الحقيقي المحتمل", `${pctOf(sm.ci95[0])} – ${pctOf(sm.ci95[1])}`],
+    ["Profit Factor", N(num(sm.profit_factor))],
+    ["الربح", `<span class="${cls(sm.pnl_sol)}">${sol(sm.pnl_sol)}</span>`],
+    ["متوسط الربح / الخسارة", `${pct(sm.avg_win_pct)} / ${pct(sm.avg_loss_pct)}`],
+    ["أكبر تراجع", N(num(sm.max_dd_sol, 4) + " SOL")],
   ].map(([k, x]) => `<div><span>${k}</span><b>${x}</b></div>`).join("");
   const icon = { pass: '<span class="pos">✓</span>', fail: '<span class="neg">✗</span>', pending: '<span class="muted">…</span>' };
   document.getElementById("criteria").innerHTML = t.criteria.map(c =>
-    `<li>${icon[c.status]} <span>${esc(c.name)}</span><span class="d">${esc(c.detail)}</span></li>`).join("");
+    `<li>${icon[c.status]} <span>${esc(CRIT[c.name] || c.name)}</span><span class="d">${esc(tr(c.detail))}</span></li>`).join("");
 
   const pos = s.open_positions;
   document.getElementById("positions").innerHTML = pos.length ? pos.map(p => `
     <div class="position">${gauge(p.confidence)}
-      <div><div><b>${esc(p.symbol)}</b> <span class="muted">${esc(p.version)}</span>
-        <span class="${cls(p.unrealized_pct)}" style="float:right;font-weight:800">${pct(p.unrealized_pct)}</span></div>
-        <div class="muted" style="font-size:12px;margin:4px 0">size ${num(p.size_sol, 4)} SOL · held ${num(p.held_min, 1)}m · peak ${pct(p.peak_return_pct)}</div>
-        <div class="bar" title="trade size"><i style="width:${Math.min(100, p.size_sol / 0.035 * 100).toFixed(0)}%"></i></div>
-        <div class="muted" style="font-size:11px;margin-top:4px"><a href="https://dexscreener.com/solana/${esc(p.mint)}" target="_blank" rel="noopener">${esc(p.mint.slice(0, 6))}…${esc(p.mint.slice(-4))}</a></div>
-      </div></div>`).join("") : `<div class="empty">No open positions</div>`;
+      <div><div><b class="ltr">${esc(p.symbol)}</b> <span class="muted ltr">${esc(p.version)}</span>
+        <span class="${cls(p.unrealized_pct)}" style="float:left;font-weight:800">${pct(p.unrealized_pct)}</span></div>
+        <div class="muted" style="font-size:12.5px;margin:4px 0">الحجم ${N(num(p.size_sol, 4) + " SOL")} · مفتوحة من ${N(num(p.held_min, 1))} دقيقة · أعلى ربح وصل له ${pct(p.peak_return_pct)}</div>
+        <div class="bar" title="حجم الصفقة"><i style="width:${Math.min(100, p.size_sol / 0.035 * 100).toFixed(0)}%"></i></div>
+        <div class="muted" style="font-size:11.5px;margin-top:4px"><a class="ltr" href="https://dexscreener.com/solana/${esc(p.mint)}" target="_blank" rel="noopener">${esc(p.mint.slice(0, 6))}…${esc(p.mint.slice(-4))} ↗</a></div>
+      </div></div>`).join("") : `<div class="empty">ما فيه صفقات مفتوحة الحين</div>`;
 
   const pl = s.pipeline;
   document.getElementById("counters").innerHTML = [
-    ["thoughts", pl.evaluated], ["✅ taken", pl.taken], ["❌ passed", pl.evaluated - pl.taken], ["lessons", s.lesson_count],
-  ].map(([k, x]) => `<div class="counter"><b>${x}</b><span>${k}</span></div>`).join("");
-  const steps = [["launches seen", s.launches_seen], ["pairs scanned", pl.scanned], ["passed filter", pl.passed_filter],
-    ["passed safety", pl.passed_safety], ["agents asked", pl.evaluated], ["consensus", pl.consensus], ["trades opened", pl.taken]];
+    ["عملات ناقشوها", pl.evaluated], ["✅ صفقات انفتحت", pl.taken], ["❌ رفضوها", pl.evaluated - pl.taken], ["دروس", s.lesson_count],
+  ].map(([k, x]) => `<div class="counter"><b class="num">${x}</b><span>${k}</span></div>`).join("");
+  const steps = [["إطلاقات جديدة", s.launches_seen], ["عملات انفحصت", pl.scanned], ["عدّت الفلتر", pl.passed_filter],
+    ["عدّت الأمان", pl.passed_safety], ["انسأل عنها الوكلاء", pl.evaluated], ["اتفقوا عليها", pl.consensus], ["صفقات انفتحت", pl.taken]];
   const max = Math.max(1, ...steps.map(x => x[1]));
   document.getElementById("funnel").innerHTML = steps.map(([k, x]) =>
-    `<div class="f"><span class="muted">${k}</span><div class="bar"><i style="width:${Math.max(1, Math.log10(x + 1) / Math.log10(max + 1) * 100).toFixed(0)}%"></i></div><b style="text-align:right">${Number(x).toLocaleString()}</b></div>`).join("")
-    + `<div class="muted" style="font-size:11px">watchlist ${pl.size} (${pl.hot} hot) · queue ${pl.queue}</div>`;
+    `<div class="f"><span class="muted">${k}</span><div class="bar"><i style="width:${Math.max(1, Math.log10(x + 1) / Math.log10(max + 1) * 100).toFixed(0)}%"></i></div><b class="num" style="text-align:left">${Number(x).toLocaleString("en")}</b></div>`).join("")
+    + `<div class="muted" style="font-size:11.5px">قائمة المراقبة ${N(pl.size)} عملة (${N(pl.hot)} نشطة) · في الانتظار ${N(pl.queue)}</div>`;
 
-  document.getElementById("trades").innerHTML = `<tr><th>Coin</th><th>Ver</th><th>Conf</th><th>Size</th><th>Held</th><th>Return</th><th>Peak</th><th>Exit</th><th>PnL</th><th>Closed</th></tr>` +
-    (s.trades.length ? s.trades.map(x => `<tr><td><b>${esc(x.symbol)}</b></td><td>${esc(x.version)}</td><td>${x.confidence}</td>
-      <td>${num(x.size_sol, 4)}</td><td>${num((x.closed_at - x.opened_at) / 60, 1)}m</td>
-      <td class="${cls(x.return_pct)}">${pct(x.return_pct, 2)}</td><td>${pct(x.peak_return_pct)}</td><td>${esc(x.exit_reason)}</td>
+  document.getElementById("trades").innerHTML = `<tr><th>العملة</th><th>النسخة</th><th>الثقة</th><th>الحجم</th><th>المدة</th><th>العائد</th><th>أعلى ربح</th><th>سبب الخروج</th><th>الربح/الخسارة</th><th>متى</th></tr>` +
+    (s.trades.length ? s.trades.map(x => `<tr><td><b class="ltr">${esc(x.symbol)}</b></td><td class="ltr">${esc(x.version)}</td><td>${N(x.confidence)}</td>
+      <td>${N(num(x.size_sol, 4))}</td><td>${N(num((x.closed_at - x.opened_at) / 60, 1))} د</td>
+      <td class="${cls(x.return_pct)}">${pct(x.return_pct, 2)}</td><td>${pct(x.peak_return_pct)}</td><td>${EXIT[x.exit_reason] || esc(x.exit_reason)}</td>
       <td class="${cls(x.pnl_sol)}">${sol(x.pnl_sol, 5)}</td><td class="muted">${ago(x.closed_at)}</td></tr>`).join("")
-      : `<tr><td colspan="10" class="empty">No closed trades yet</td></tr>`);
+      : `<tr><td colspan="10" class="empty">ما فيه صفقات مغلقة بعد</td></tr>`);
 
-  document.getElementById("versions").innerHTML = `<tr><th>Version</th><th>Closed</th><th>Wins</th><th>Fee-adj. PnL</th><th></th></tr>` +
-    s.versions.map(x => `<tr><td><b>${esc(x.version)}</b></td><td>${x.closed ?? "–"}</td>
-      <td>${x.wins === null ? "–" : `${x.wins} (${pctOf(x.hit)})`}</td>
+  document.getElementById("versions").innerHTML = `<tr><th>النسخة</th><th>الصفقات</th><th>الرابحة</th><th>الربح بعد الرسوم</th><th>ملاحظة</th></tr>` +
+    s.versions.map(x => `<tr><td><b>${esc(x.version)}</b></td><td>${x.closed === null ? "–" : N(x.closed)}</td>
+      <td>${x.wins === null ? "–" : `${N(x.wins)} (${pctOf(x.hit)})`}</td>
       <td class="${cls(x.pnl_sol)}">${x.pnl_sol === null ? "–" : sol(x.pnl_sol)}</td><td class="muted">${esc(x.note)}</td></tr>`).join("");
 
   const cal = s.calibration;
-  document.getElementById("calib").innerHTML = `<tr><th>Score</th><th>Trades</th><th>Hit</th><th>Avg return</th><th>PnL</th></tr>` +
-    Object.entries(cal).filter(([k]) => k.includes("-")).map(([k, x]) => `<tr><td>${k}</td><td>${x.n}</td><td>${x.n ? pctOf(x.hit) : "–"}</td>
+  document.getElementById("calib").innerHTML = `<tr><th>درجة الثقة</th><th>الصفقات</th><th>الإصابة</th><th>متوسط العائد</th><th>الربح</th></tr>` +
+    Object.entries(cal).filter(([k]) => k.includes("-")).map(([k, x]) => `<tr><td>${N(k)}</td><td>${N(x.n)}</td><td>${x.n ? pctOf(x.hit) : "–"}</td>
       <td class="${cls(x.avg_return_pct)}">${pct(x.avg_return_pct)}</td><td class="${cls(x.pnl_sol)}">${x.n ? sol(x.pnl_sol) : "–"}</td></tr>`).join("");
-  document.getElementById("brier").textContent = cal.brier_tp !== undefined
-    ? `Brier score (score/100 vs reaching +TP): ${num(cal.brier_tp, 3)} · base rate ${pctOf(cal.base_rate_tp)}. If 80+ is not better than 70–79 after the test, go back to fixed size.`
-    : "Calibration fills in as trades close.";
+  document.getElementById("brier").innerHTML = cal.brier_tp !== undefined
+    ? `مقياس الصدق (Brier): ${N(num(cal.brier_tp, 3))}، كل ما قلّ كان أفضل. فعلياً ${pctOf(cal.base_rate_tp)} من الصفقات وصلت +40%. لو بعد الاختبار ما طلعت درجات 80+ أفضل من 70–79، ارجع لحجم ثابت.`
+    : "هذا الجدول يتعبّى مع إغلاق الصفقات.";
 
-  document.getElementById("blackboard").innerHTML = s.blackboard.length ? s.blackboard.map(x => `
-    <div class="row"><div class="meta"><b style="color:var(--text)">${esc(x.symbol || x.mint.slice(0, 6))}</b> · ${esc(x.agent.toUpperCase())} · ${esc(x.topic)} · ${ago(x.ts)}</div>${esc(x.note)}</div>`).join("")
-    : `<div class="empty">Nothing discussed yet</div>`;
+  document.getElementById("blackboard").innerHTML = s.blackboard.length ? s.blackboard.map(x => {
+    const note = x.agent === "safety" ? x.note.split("; ").map(tr).join("؛ ") : trNote(x.note);
+    return `<div class="row"><div class="meta"><b class="ltr" style="color:var(--text)">${esc(x.symbol || x.mint.slice(0, 6))}</b> · ${(AGENTS[x.agent] || {}).icon || ""} ${esc(agentName(x.agent))} · ${esc(tr(x.topic))} · ${ago(x.ts)}</div>${esc(note)}</div>`;
+  }).join("") : `<div class="empty">ما ناقشوا شيء للحين</div>`;
   document.getElementById("candidates").innerHTML = s.candidates.length ? s.candidates.map(x => `
-    <div class="row"><div class="meta"><span class="${x.passed ? "pos" : "neg"}">${x.passed ? "PASS" : "REJECT"}</span> · <b style="color:var(--text)">${esc(x.symbol || x.mint.slice(0, 6))}</b> · ${esc(x.stage)} · liq $${Math.round(x.liquidity_usd || 0).toLocaleString()} · ${ago(x.ts)}</div>${esc((x.reasons || []).join("; "))}</div>`).join("")
-    : `<div class="empty">No candidates yet</div>`;
+    <div class="row"><div class="meta"><span class="${x.passed ? "pos" : "neg"}">${x.passed ? "مقبولة" : "مرفوضة"}</span> · <b class="ltr" style="color:var(--text)">${esc(x.symbol || x.mint.slice(0, 6))}</b> · ${STAGE[x.stage] || esc(x.stage)} · السيولة ${N("$" + Math.round(x.liquidity_usd || 0).toLocaleString("en"))} · ${ago(x.ts)}</div>${esc(trReasons(x.reasons))}</div>`).join("")
+    : `<div class="empty">ما فيه عملات مرشحة للحين</div>`;
 
   const c = s.costs, bs = c.by_service || {};
-  const rows = Object.entries(bs).map(([k, x]) => `<tr><td>${esc(k)}</td><td>${x.units.toLocaleString()}</td><td>$${num(x.usd, 3)}</td></tr>`).join("");
-  document.getElementById("costs").innerHTML = `<table><tr><th>Service</th><th>Units</th><th>USD</th></tr>${rows || `<tr><td colspan="3" class="empty">No spend recorded</td></tr>`}</table>
-    <p style="margin:10px 0 0">Operating cost this test (incl. hosting): <b>$${num(c.operating_usd, 2)}</b> vs paper PnL <b class="${cls(c.pnl_usd)}">${c.pnl_usd === null ? "–" : "$" + num(c.pnl_usd, 2)}</b></p>
-    ${c.x_budget ? `<p class="muted" style="margin:6px 0 0;font-size:12px">X budget: $${num(c.x_budget.hour_usd, 2)}/${c.x_budget.hour_cap} this hour · $${num(c.x_budget.day_usd, 2)}/${c.x_budget.day_cap} today ${c.x_budget.exhausted ? '<span class="neg">EXHAUSTED</span>' : ""}</p>` : ""}`;
+  const rows = Object.entries(bs).map(([k, x]) => `<tr><td>${esc(SERVICE[k] || k)}</td><td>${N(x.units.toLocaleString("en"))}</td><td>${N("$" + num(x.usd, 3))}</td></tr>`).join("");
+  document.getElementById("costs").innerHTML = `<table><tr><th>الخدمة</th><th>الاستهلاك</th><th>التكلفة</th></tr>${rows || `<tr><td colspan="3" class="empty">ما فيه مصاريف مسجلة</td></tr>`}</table>
+    <p style="margin:10px 0 0">تكلفة التشغيل في هذا الاختبار (مع الاستضافة): <b>${N("$" + num(c.operating_usd, 2))}</b> مقابل الربح الورقي <b class="${cls(c.pnl_usd)}">${c.pnl_usd === null ? "–" : N("$" + num(c.pnl_usd, 2))}</b></p>
+    ${c.x_budget ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">ميزانية X: ${N("$" + num(c.x_budget.hour_usd, 2) + " / " + c.x_budget.hour_cap)} هذي الساعة · ${N("$" + num(c.x_budget.day_usd, 2) + " / " + c.x_budget.day_cap)} اليوم ${c.x_budget.exhausted ? '<span class="neg">خلصت</span>' : ""}</p>` : ""}`;
 
   document.getElementById("reports").innerHTML = s.reports.length ? s.reports.map(r => {
     const x = r.body.summary || {};
-    return `<div class="row"><div class="meta">${esc(r.version)} · ${esc(r.kind)} · ${r.trades} trades · ${ago(r.ts)}</div>
-      hit ${pctOf(x.hit)} (CI ${pctOf((x.ci95 || [])[0])}–${pctOf((x.ci95 || [])[1])}) · PF ${num(x.profit_factor)} · PnL ${sol(x.pnl_sol)} · verdict ${esc(r.body.verdict)}</div>`;
-  }).join("") : `<div class="empty">First report after ${10} closed trades</div>`;
+    return `<div class="row"><div class="meta">${esc(r.version)} · ${KIND[r.kind] || esc(r.kind)} · ${N(r.trades)} صفقة · ${ago(r.ts)}</div>
+      الإصابة ${pctOf(x.hit)} (النطاق ${pctOf((x.ci95 || [])[0])}–${pctOf((x.ci95 || [])[1])}) · Profit Factor ${N(num(x.profit_factor))} · الربح ${sol(x.pnl_sol)} · الحكم: ${VERDICT[r.body.verdict] || esc(r.body.verdict)}</div>`;
+  }).join("") : `<div class="empty">أول تقرير يطلع بعد 10 صفقات مغلقة</div>`;
 }
 
 async function tick() {
+  const h = document.getElementById("health");
   try {
     const r = await fetch("/api/state" + (TOKEN ? "?token=" + encodeURIComponent(TOKEN) : ""));
     if (r.ok) render(await r.json());
-    else document.getElementById("health").textContent = r.status === 401 ? "● add ?token=" : "● starting";
-  } catch (e) { document.getElementById("health").textContent = "● offline"; }
+    else h.textContent = r.status === 401 ? "● أضف ?token= للرابط" : "● يشتغل الحين…";
+  } catch (e) { h.textContent = "● ما فيه اتصال"; }
 }
 tick(); setInterval(tick, 3000);
 </script>

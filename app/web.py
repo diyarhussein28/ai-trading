@@ -49,7 +49,7 @@ def create_app(engine_ref: dict) -> FastAPI:
         eng = engine_ref["engine"]
         paused = not await eng.db.meta_get("paused", False)
         await eng.db.meta_set("paused", paused)
-        await eng.alerts.send("⏸️ new entries paused by operator" if paused else "▶️ new entries resumed")
+        await eng.alerts.send("⏸️ تم إيقاف الصفقات الجديدة يدوياً" if paused else "▶️ رجعت الصفقات الجديدة")
         return {"paused": paused}
 
     @app.get("/")

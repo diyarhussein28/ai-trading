@@ -27,9 +27,9 @@ def detective(ctx: dict) -> dict:
         if ctx.get("social_policy") == "degrade":
             links = _profile_links(ctx)
             if links >= 2:
-                return _vote(min(75, 60 + 5 * links), f"no X data; profile has {links} real links (degraded mode)")
-            return _vote(30, f"no X data and only {links} profile link(s)", ["thin profile"])
-        return _vote(0, f"social data unavailable: {soc.get('status', 'missing')}", ["no social data"], buy_ok=False)
+                return _vote(min(75, 60 + 5 * links), f"ما فيه بيانات X؛ صفحة العملة فيها {links} روابط حقيقية (وضع مخفّف)")
+            return _vote(30, f"ما فيه بيانات X، وصفحة العملة فيها {links} رابط بس", ["صفحة ضعيفة"])
+        return _vote(0, f"بيانات X غير متوفرة: {soc.get('status', 'missing')}", ["ما فيه بيانات اجتماعية"], buy_ok=False)
 
     flags, s = [], 40.0
     authors = soc.get("distinct_authors", 0)
@@ -39,7 +39,7 @@ def detective(ctx: dict) -> dict:
     s += 12 if aged >= 0.6 else (-20 if aged < 0.3 else 0)
     if dup > 0.3:
         s -= 25
-        flags.append(f"copy-paste text {dup:.0%}")
+        flags.append(f"نصوص منسوخة {dup:.0%}")
     elif dup <= 0.1:
         s += 5
     if soc.get("growing"):
@@ -49,9 +49,9 @@ def detective(ctx: dict) -> dict:
     if soc.get("total_likes", 0) >= 50:
         s += 5
     if aged < 0.3:
-        flags.append("mostly new accounts")
-    reason = (f"{authors} authors, {aged:.0%} aged, {dup:.0%} duplicate, "
-              f"{soc.get('posts_last_15m', 0)} posts/15m, growing={soc.get('growing')}")
+        flags.append("أغلب الحسابات جديدة")
+    reason = (f"{authors} كاتب، {aged:.0%} حسابات قديمة، {dup:.0%} نصوص مكررة، "
+              f"{soc.get('posts_last_15m', 0)} منشور آخر 15 دقيقة، {'النشاط يزيد' if soc.get('growing') else 'النشاط ما يزيد'}")
     return _vote(s, reason, flags, buy_ok=dup <= 0.3 and authors >= 5)
 
 
@@ -62,16 +62,16 @@ def sniper(ctx: dict) -> dict:
         if ctx.get("social_policy") == "degrade":
             p = ctx.get("profile") or {}
             if age <= 60 and p.get("has_twitter") and (p.get("has_website") or p.get("has_telegram")):
-                return _vote(72, f"fresh launch ({age:.0f}m) with complete profile (degraded mode)")
-            return _vote(30, "no X data and no fresh, complete profile")
-        return _vote(0, f"social data unavailable: {soc.get('status', 'missing')}", ["no social data"], buy_ok=False)
+                return _vote(72, f"إطلاق جديد ({age:.0f} دقيقة) وصفحته مكتملة (وضع مخفّف)")
+            return _vote(30, "ما فيه بيانات X ولا صفحة جديدة مكتملة")
+        return _vote(0, f"بيانات X غير متوفرة: {soc.get('status', 'missing')}", ["ما فيه بيانات اجتماعية"], buy_ok=False)
 
     big = soc.get("big_accounts_last_60m") or []
     if not big:
-        return _vote(35, "no credible large account or news in the last 60 min - not a catalyst")
+        return _vote(35, "ما فيه حساب كبير موثوق ولا خبر آخر 60 دقيقة، يعني ما فيه محفّز")
     top = max(b.get("followers") or 0 for b in big)
     s = 65 + 8 * min(len(big), 3) + (10 if top >= 100_000 else 0) + (3 if age <= 60 else -5)
-    return _vote(min(s, 95), f"{len(big)} large account(s) posted in 60m, top {top:,} followers; token {age:.0f}m old")
+    return _vote(min(s, 95), f"{len(big)} حساب كبير نشر آخر 60 دقيقة، أكبرهم {top:,} متابع؛ عمر العملة {age:.0f} دقيقة")
 
 
 def professor(ctx: dict) -> dict:
@@ -103,10 +103,10 @@ def professor(ctx: dict) -> dict:
 
     col = ctx.get("colleagues") or {}
     both_buy = bool(col) and all(v.get("vote") == "BUY" for v in col.values())
-    reason = (f"buys/sells {ratio:.2f}, vol5m/liq {vlr:.2f}, 5m {chg:+.0f}%, liq ${liq:,.0f}, "
-              f"holders {saf.get('holders')}, {len(flags)} minor flag(s)")
+    reason = (f"شراء/بيع {ratio:.2f}، حجم 5 دقائق/السيولة {vlr:.2f}، تغيّر 5 دقائق {chg:+.0f}%، السيولة ${liq:,.0f}، "
+              f"الحاملين {saf.get('holders')}، تحذيرات بسيطة {len(flags)}")
     if col and not both_buy:
-        reason += "; colleagues not unanimous"
+        reason += "؛ الزملاء ما اتفقوا"
     return _vote(s, reason, flags)
 
 

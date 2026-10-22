@@ -28,7 +28,7 @@ async def decide(team: dict, ctx: dict, cfg: dict, db) -> Decision:
 
     if c.get("short_circuit", True) and (det["vote"] != "BUY" or snp["vote"] != "BUY"):
         votes["professor"] = {"vote": "PASS", "score": 0, "red_flags": [],
-                              "reason": "not consulted: Detective/Sniper not unanimous"}
+                              "reason": "ما انسأل: المحقق والقنّاص ما اتفقوا"}
     else:
         votes["professor"] = await team["professor"].vote({**ctx, "colleagues": {
             "detective": det, "sniper": snp}})

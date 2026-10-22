@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Any
 
-from .agents.prompts import POST_MORTEM
+from .agents.prompts import POST_MORTEM, language_rule
 from .agents.team import ROSTER, build_team
 from .consensus import decide
 from .filters import market_filter, minor_flags, safety_gate
@@ -18,6 +18,10 @@ from .sources.social import summarize
 from .watchlist import Watchlist
 
 log = logging.getLogger("engine")
+
+EXIT_AR = {"TP": "جني ربح", "SL": "وقف خسارة", "TRAIL": "وقف متحرك", "TIME": "انتهى الوقت", "RUG": "سحب سيولة"}
+VERDICT_AR = {"IN PROGRESS": "قيد التنفيذ", "PASSED": "ناجح", "FAILED": "فاشل",
+              "STOPPED EARLY": "متوقف مبكراً", "INCONCLUSIVE": "غير حاسم"}
 
 
 def _has(links: list[dict], *needles: str) -> bool:
@@ -60,7 +64,8 @@ class Engine:
         prev = await self.db.meta_get(key)
         cur = self.cfg["_meta"]["hash"]
         if prev and prev != cur:
-            self.config_drift = f"config for {self.version} changed mid-test ({prev} -> {cur}); bump `version`"
+            self.config_drift = (f"إعدادات {self.version} تغيّرت في نص الاختبار ({prev} ← {cur})؛ "
+                                 f"غيّر قيمة version في ملف الإعدادات")
             log.warning(self.config_drift)
             await self.alerts.send("⚠️ " + self.config_drift)
         elif not prev:
@@ -92,7 +97,9 @@ class Engine:
                 self._loop(self.profiles_once, self.cfg["discovery"]["profiles_poll_seconds"]), name="profiles"))
         for i in range(self.cfg["agents"]["max_concurrent_evaluations"]):
             self.tasks.append(asyncio.create_task(self.eval_worker(), name=f"eval-{i}"))
-        await self.alerts.send(f"🟢 {self.version} started ({self.cfg['mode'].upper()}, agents={self.cfg['agents']['backend']})")
+        mode = "ورقي" if self.cfg["mode"] == "paper" else self.cfg["mode"]
+        agents = "Claude" if self.cfg["agents"]["backend"] == "llm" else "قواعد ثابتة"
+        await self.alerts.send(f"🟢 البوت اشتغل · {self.version} · تداول {mode} · الوكلاء: {agents}")
 
     async def stop(self) -> None:
         for t in self.tasks + list(self._bg):
@@ -262,9 +269,9 @@ class Engine:
             return
         await self.db.mark_decision_taken(decision_id, True, d.note)
         await self.db.add_blackboard(mint, sym, "broker", "OPEN",
-                                     f"{d.size_sol:.4f} SOL @ ${fresh['price_usd']:.8f} (confidence {d.score})")
-        await self.alerts.send(f"🟢 OPEN {sym} {d.size_sol:.4f} SOL · confidence {d.score} · "
-                               f"liq ${fresh['liquidity_usd']:,.0f} · {fresh.get('url') or mint}")
+                                     f"{d.size_sol:.4f} SOL بسعر ${fresh['price_usd']:.8f} (الثقة {d.score})")
+        await self.alerts.send(f"🟢 فتح صفقة {sym} · {d.size_sol:.4f} SOL · الثقة {d.score} · "
+                               f"السيولة ${fresh['liquidity_usd']:,.0f} · {fresh.get('url') or mint}")
 
     # ------------------------------------------------------------------ position monitoring
     def _sol_usd(self) -> float | None:
@@ -288,8 +295,9 @@ class Engine:
     async def on_closed(self, pos: dict) -> None:
         held = (pos["closed_at"] - pos["opened_at"]) / 60
         icon = "✅" if pos["pnl_sol"] > 0 else "❌"
-        msg = (f"{icon} CLOSE {pos['symbol']} {pos['exit_reason']} {pos['return_pct']:+.1f}% "
-               f"({pos['pnl_sol']:+.5f} SOL) held {held:.1f}m · peak {pos['peak_return_pct'] or 0:+.1f}%")
+        why = EXIT_AR.get(pos["exit_reason"], pos["exit_reason"])
+        msg = (f"{icon} إغلاق {pos['symbol']} · {why} · {pos['return_pct']:+.1f}% "
+               f"({pos['pnl_sol']:+.5f} SOL) · المدة {held:.1f} دقيقة · أعلى ربح {pos['peak_return_pct'] or 0:+.1f}%")
         await self.db.add_blackboard(pos["mint"], pos["symbol"], "broker", "CLOSE", msg)
         await self.alerts.send(msg)
         await self.checkpoint()
@@ -306,7 +314,7 @@ class Engine:
             "votes": [{k: v[k] for k in ("agent", "vote", "score", "reason", "red_flags")}
                       for v in (await self.db.votes_for(dec["decision_key"]) if dec else [])],
         }
-        for item in await self.llm.post_mortem(POST_MORTEM, trade):
+        for item in await self.llm.post_mortem(POST_MORTEM + language_rule(self.cfg), trade):
             await self.db.add_lesson(item["agent"], pos["mint"], pos["id"], item["lesson"])
             await self.db.add_blackboard(pos["mint"], pos["symbol"], item["agent"], "lesson", item["lesson"])
 
@@ -330,17 +338,19 @@ class Engine:
             lo, hi = s["ci95"]
             pf = s["profit_factor"]
             await self.alerts.send(
-                f"📊 {self.version} checkpoint {n}/{st['planned']}: hit {s['hit']:.0%} (95% CI {lo:.0%}-{hi:.0%}), "
-                f"PF {pf if pf is None else round(pf, 2)}, PnL {s['pnl_sol']:+.4f} SOL, worst {s['worst_pct']:+.1f}% "
-                f"- verdict {st['verdict']} (no parameter changes mid-test)")
+                f"📊 تقرير {self.version}: {n}/{st['planned']} صفقة · الإصابة {s['hit']:.0%} "
+                f"(النطاق {lo:.0%}–{hi:.0%}) · Profit Factor {pf if pf is None else round(pf, 2)} · "
+                f"الربح {s['pnl_sol']:+.4f} SOL · أسوأ صفقة {s['worst_pct']:+.1f}% · "
+                f"الحكم: {VERDICT_AR.get(st['verdict'], st['verdict'])} (لا تغيّر أي إعداد أثناء الاختبار)")
         if st["early_stop"]:
             key = f"halted:{self.version}"
             if not await self.db.meta_get(key):
                 await self.db.meta_set(key, "; ".join(st["early_stop"]))
-                await self.alerts.send(f"🛑 {self.version} early-stop rule hit: {'; '.join(st['early_stop'])}")
+                await self.alerts.send(f"🛑 {self.version}: انطبقت قاعدة الإيقاف المبكر ({'؛ '.join(st['early_stop'])}). "
+                                       f"البوت وقف يدخل صفقات جديدة")
         if n >= st["planned"] and not await self.db.has_report(self.version, "final", n):
             await self.db.add_report(self.version, "final", n, jsonable(st))
-            await self.alerts.send(f"🏁 {self.version} finished {n} trades - verdict {st['verdict']}")
+            await self.alerts.send(f"🏁 {self.version} خلّص {n} صفقة · الحكم: {VERDICT_AR.get(st['verdict'], st['verdict'])}")
 
     # ------------------------------------------------------------------ housekeeping
     async def housekeeping(self) -> None:
@@ -349,13 +359,13 @@ class Engine:
         await self.db.meta_set("launches_seen", self._launch_base + self.launches_seen)
         stale = self.stream.stale_seconds()
         if stale > 120 and time.time() - self.started_at > 180:
-            await self.alerts.send(f"⚠️ launch stream silent for {stale:.0f}s", "stream_stale", 900)
+            await self.alerts.send(f"⚠️ ما وصلت إطلاقات جديدة من PumpPortal من {stale:.0f} ثانية", "stream_stale", 900)
         if getattr(self.dex, "http_429", 0) > 20:
-            await self.alerts.send(f"⚠️ DexScreener 429s: {self.dex.http_429}", "dex429", 1800)
+            await self.alerts.send(f"⚠️ DexScreener رفض {self.dex.http_429} طلب (تجاوز حد الطلبات 429)", "dex429", 1800)
             self.dex.http_429 = 0
         guard = getattr(self.social, "guard", None)
         if guard is not None and (await guard.status("x_api"))["exhausted"]:
-            await self.alerts.send("⚠️ X budget exhausted - Detective/Sniper vote PASS until it resets", "xbudget", 3600)
+            await self.alerts.send("⚠️ خلصت ميزانية X؛ المحقق والقنّاص يرفضون كل شيء لين تتجدد الميزانية", "xbudget", 3600)
         if int(time.time()) % 3600 < 60:
             await self.db.prune(self.cfg["runtime"]["retention_days"])
 
@@ -391,8 +401,8 @@ class Engine:
         versions = list(HISTORICAL_VERSIONS)
         for v in sorted(set(await self.db.versions_seen()) | {self.version}):
             s = summary(await self.db.closed_positions(v))
-            versions.append({"version": v + " (live)", "closed": s["n"], "wins": s["wins"], "hit": s["hit"],
-                             "pnl_sol": s["pnl_sol"], "note": f"{s['n']} of {self.cfg['test']['planned_trades']} planned"
+            versions.append({"version": v + " (مباشر)", "closed": s["n"], "wins": s["wins"], "hit": s["hit"],
+                             "pnl_sol": s["pnl_sol"], "note": f"{s['n']} من {self.cfg['test']['planned_trades']} مخطط لها"
                              if v == self.version else ""})
         spend = await self.db.spend_by_service()
         guard = getattr(self.social, "guard", None)

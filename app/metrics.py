@@ -5,13 +5,13 @@ from math import sqrt
 
 # Blueprint 5.2 - results from the video, shown next to live results in the version table.
 HISTORICAL_VERSIONS = [
-    {"version": "V1", "closed": None, "wins": None, "hit": None, "pnl_sol": None, "note": "single agent, 2 duplicated losses"},
-    {"version": "V2", "closed": 41, "wins": 17, "hit": 0.41, "pnl_sol": -0.0209, "note": "41 across four tests"},
-    {"version": "V3", "closed": 20, "wins": 7, "hit": 0.35, "pnl_sol": -0.0213, "note": "20 across two tests"},
-    {"version": "V4", "closed": 20, "wins": 7, "hit": 0.35, "pnl_sol": -0.0229, "note": "20 across two tests"},
-    {"version": "V5", "closed": 49, "wins": 26, "hit": 0.53, "pnl_sol": -0.0954, "note": "baseline + continuous test"},
-    {"version": "V6", "closed": 7, "wins": 4, "hit": 0.57, "pnl_sol": -0.0234, "note": "7 of 20 planned"},
-    {"version": "V7 (video)", "closed": 10, "wins": 8, "hit": 0.80, "pnl_sol": 0.0438, "note": "10 of 100 planned"},
+    {"version": "V1", "closed": None, "wins": None, "hit": None, "pnl_sol": None, "note": "وكيل واحد، خسارتين مكررتين"},
+    {"version": "V2", "closed": 41, "wins": 17, "hit": 0.41, "pnl_sol": -0.0209, "note": "41 على أربع تجارب"},
+    {"version": "V3", "closed": 20, "wins": 7, "hit": 0.35, "pnl_sol": -0.0213, "note": "20 على تجربتين"},
+    {"version": "V4", "closed": 20, "wins": 7, "hit": 0.35, "pnl_sol": -0.0229, "note": "20 على تجربتين"},
+    {"version": "V5", "closed": 49, "wins": 26, "hit": 0.53, "pnl_sol": -0.0954, "note": "تجربة أساسية + مستمرة"},
+    {"version": "V6", "closed": 7, "wins": 4, "hit": 0.57, "pnl_sol": -0.0234, "note": "7 من 20 مخطط لها"},
+    {"version": "V7 (الفيديو)", "closed": 10, "wins": 8, "hit": 0.80, "pnl_sol": 0.0438, "note": "10 من 100 مخطط لها"},
 ]
 
 

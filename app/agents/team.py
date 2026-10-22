@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass, field
 
 from .llm import LLM
-from .prompts import PROMPTS
+from .prompts import PROMPTS, language_rule
 from .rules import RULES
 
 ROSTER = {
@@ -35,7 +35,7 @@ class Agent:
         self.lessons_frozen_at: int | None = None
 
     async def _system(self) -> str:
-        base = PROMPTS[self.name]
+        base = PROMPTS[self.name] + language_rule(self.cfg)
         lc = self.cfg["lessons"]
         if not lc.get("inject"):
             return base

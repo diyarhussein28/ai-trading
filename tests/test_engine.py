@@ -205,7 +205,7 @@ async def test_config_drift_detected(rules_cfg, db):
     eng.stream.run_stream = lambda cb: _never()
     await eng.start()
     try:
-        assert eng.config_drift and "changed mid-test" in eng.config_drift
+        assert eng.config_drift and "تغيّرت في نص الاختبار" in eng.config_drift
     finally:
         await eng.stop()
 
