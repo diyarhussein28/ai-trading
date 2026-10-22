@@ -4,6 +4,7 @@
     python -m app.main demo      # synthetic market + rule agents, no keys, no network
     python -m app.main report    # print the 100-trade test status from the database
     python -m app.main check MINT  # one-shot: snapshot + filter + safety gate for a real token
+    python -m app.main doctor    # check every key in .env against its service (free calls only, nothing printed)
     python -m app.main simulate --trades 100 --speed 30
                                  # run the 100-trade protocol on the synthetic market with a fast clock
 """
@@ -168,6 +169,129 @@ async def simulate(trades: int, speed: float, seed: int, max_minutes: float) -> 
     _time.time = real
 
 
+async def doctor() -> bool:
+    """Verify each credential with a free call. Never prints a secret."""
+    import httpx
+    from urllib.parse import urlparse
+
+    ok_all = True
+
+    def line(ok: bool | None, name: str, msg: str) -> None:
+        nonlocal ok_all
+        icon = {True: "✅", False: "❌", None: "⚪"}[ok]
+        if ok is False:
+            ok_all = False
+        print(f"{icon} {name}: {msg}")
+
+    def mask(v: str) -> str:
+        return f"…{v[-4:]}" if len(v) > 8 else "(قصير جداً)"
+
+    env = lambda k: (os.environ.get(k) or "").strip()
+    cfg = load_config()
+    print(f"الإعدادات: {cfg['_meta']['path']} · النسخة {cfg['version']} · الوضع {cfg['mode']} · الوكلاء {cfg['agents']['backend']}\n")
+
+    async with httpx.AsyncClient(timeout=15) as c:
+        # Anthropic: list the two models (no tokens spent)
+        key = env("ANTHROPIC_API_KEY")
+        if not key:
+            line(cfg["agents"]["backend"] != "llm" and None, "Anthropic", "المفتاح ناقص (ANTHROPIC_API_KEY)")
+        else:
+            import anthropic
+            client = anthropic.AsyncAnthropic(api_key=key, max_retries=1, timeout=15)
+            for var, default in (("CLAUDE_VOTE_MODEL", "claude-haiku-5-5"), ("CLAUDE_REVIEW_MODEL", "claude-opus-5-5")):
+                model = env(var) or default
+                try:
+                    await client.models.retrieve(model)
+                    line(True, f"Anthropic ({var})", f"المفتاح {mask(key)} شغّال والنموذج {model} متاح")
+                except anthropic.AuthenticationError:
+                    line(False, "Anthropic", f"المفتاح {mask(key)} مرفوض. انسخه من جديد من console.anthropic.com")
+                    break
+                except anthropic.NotFoundError:
+                    line(False, f"Anthropic ({var})", f"النموذج {model} غير متاح لحسابك")
+                except anthropic.APIError as e:
+                    line(False, "Anthropic", f"خطأ: {type(e).__name__}")
+            await client.close()
+
+        # X: the usage endpoint authenticates the token without reading (or paying for) any post
+        tok = env("X_BEARER_TOKEN")
+        if not tok:
+            line(False if cfg["social"]["on_missing"] == "pass" else None, "X",
+                 "التوكن ناقص، فالمحقق والقنّاص راح يرفضون كل عملة" if cfg["social"]["on_missing"] == "pass"
+                 else "التوكن ناقص (وضع degrade مفعّل)")
+        else:
+            try:
+                r = await c.get("https://api.x.com/2/usage/tweets", headers={"Authorization": f"Bearer {tok}"})
+                if r.status_code == 200:
+                    line(True, "X", f"التوكن {mask(tok)} شغّال")
+                elif r.status_code == 401:
+                    line(False, "X", f"التوكن {mask(tok)} مرفوض (401). انسخ Bearer Token من جديد")
+                elif r.status_code in (402, 403):
+                    detail = (r.json().get("detail") or r.json().get("title") or "") if r.headers.get("content-type", "").startswith("application/json") else ""
+                    line(False, "X", f"التوكن صحيح لكن الوصول مرفوض ({r.status_code}): {detail[:160]} - غالباً تحتاج رصيد (Credits)")
+                else:
+                    line(False, "X", f"رد غير متوقع {r.status_code}")
+            except httpx.HTTPError as e:
+                line(False, "X", f"ما قدرنا نتصل: {type(e).__name__}")
+
+        # Telegram: getMe + getChat (sends nothing)
+        bt, chat = env("TELEGRAM_BOT_TOKEN"), env("TELEGRAM_CHAT_ID")
+        if not bt and not chat:
+            line(None, "Telegram", "غير مضبوط (اختياري)")
+        elif not (bt and chat):
+            line(False, "Telegram", "لازم TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID مع بعض")
+        else:
+            try:
+                me = (await c.get(f"https://api.telegram.org/bot{bt}/getMe")).json()
+                if not me.get("ok"):
+                    line(False, "Telegram", "توكن البوت مرفوض. انسخه من جديد من @BotFather")
+                else:
+                    ch = (await c.get(f"https://api.telegram.org/bot{bt}/getChat", params={"chat_id": chat})).json()
+                    if ch.get("ok"):
+                        line(True, "Telegram", f"البوت @{me['result'].get('username')} يقدر يرسل للمحادثة {mask(chat)}")
+                    else:
+                        line(False, "Telegram", f"البوت @{me['result'].get('username')} شغّال، لكن رقم المحادثة غلط أو ما راسلته "
+                                                f"(افتح البوت واكتب له أي رسالة). السبب: {ch.get('description', '')[:80]}")
+            except httpx.HTTPError as e:
+                line(False, "Telegram", f"ما قدرنا نتصل: {type(e).__name__}")
+
+        # Discord (optional): a GET on a webhook returns its metadata without posting
+        dw = env("DISCORD_WEBHOOK_URL")
+        if dw:
+            try:
+                r = await c.get(dw)
+                line(r.status_code == 200, "Discord", "الرابط شغّال" if r.status_code == 200 else f"الرابط مرفوض ({r.status_code})")
+            except httpx.HTTPError as e:
+                line(False, "Discord", f"ما قدرنا نتصل: {type(e).__name__}")
+
+        # Solana RPC (optional)
+        rpc = env("SOLANA_RPC_URL")
+        if not rpc:
+            line(None, "Solana RPC", "غير مضبوط (اختياري؛ RugCheck يكفي)")
+        else:
+            host = urlparse(rpc).hostname or "?"
+            try:
+                r = await c.post(rpc, json={"jsonrpc": "2.0", "id": 1, "method": "getHealth"})
+                res = r.json() if r.status_code == 200 else {}
+                line(res.get("result") == "ok", "Solana RPC", f"{host}: " + ("شغّال" if res.get("result") == "ok" else f"رد {r.status_code} {str(res)[:80]}"))
+            except (httpx.HTTPError, ValueError) as e:
+                line(False, "Solana RPC", f"{host}: ما قدرنا نتصل ({type(e).__name__})")
+
+    # Dashboard token and database
+    dt = env("DASHBOARD_TOKEN")
+    if not dt:
+        line(None, "DASHBOARD_TOKEN", "فاضي: محلياً عادي، لكن على Railway إلزامي (ولّده بـ: openssl rand -hex 24)")
+    else:
+        line(len(dt) >= 16, "DASHBOARD_TOKEN", "موجود" if len(dt) >= 16 else "قصير، خلّه 16 حرف أو أكثر")
+    db = Database(team=cfg.get("team", "claude"))
+    ok = await db.ping()
+    line(ok, "قاعدة البيانات", ("Postgres" if not db.is_sqlite else "SQLite محلي (data/agents.db)") + (" شغّالة" if ok else " ما تشتغل"))
+    await db.close()
+    if cfg["mode"] != "paper":
+        line(False, "الوضع", "mode لازم يكون paper")
+    print("\n" + ("كل شيء جاهز ✅" if ok_all else "فيه شيء يحتاج تصليح ❌ (شوف فوق)"))
+    return ok_all
+
+
 async def report() -> None:
     cfg = load_config()
     db = Database(team=cfg.get("team", "claude"))
@@ -212,7 +336,7 @@ def main() -> None:
     load_dotenv()
     setup_logging()
     ap = argparse.ArgumentParser(prog="python -m app.main")
-    ap.add_argument("command", nargs="?", default="run", choices=["run", "demo", "report", "check", "simulate"])
+    ap.add_argument("command", nargs="?", default="run", choices=["run", "demo", "report", "check", "simulate", "doctor"])
     ap.add_argument("mint", nargs="?")
     ap.add_argument("--trades", type=int, default=100)
     ap.add_argument("--speed", type=float, default=30)
@@ -221,6 +345,8 @@ def main() -> None:
     a = ap.parse_args()
     if a.command == "report":
         asyncio.run(report())
+    elif a.command == "doctor":
+        sys.exit(0 if asyncio.run(doctor()) else 1)
     elif a.command == "simulate":
         asyncio.run(simulate(a.trades, a.speed, a.seed, a.max_minutes))
     elif a.command == "check":

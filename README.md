@@ -53,6 +53,12 @@ To run against the real market (paper), copy `.env.example` to `.env`, fill in `
 .venv/bin/python -m app.main run
 ```
 
+Verify every key in `.env` against its service (free calls only, no secret is printed):
+
+```bash
+.venv/bin/python -m app.main doctor
+```
+
 Check one real token against the filter and the safety gate:
 
 ```bash
@@ -115,7 +121,7 @@ written every 10 trades. Entries stop automatically if PF < 0.8 after 40 trades 
 ## Layout
 ```
 app/
-  main.py            CLI: run · demo · simulate · report · check
+  main.py            CLI: run · demo · simulate · report · check · doctor
   engine.py          orchestrator (discovery → filter → safety → social → agents → broker → metrics)
   watchlist.py       re-check scheduling for maturing launches
   filters.py         hard filter, safety gate, minor flags
