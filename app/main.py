@@ -35,7 +35,7 @@ log = logging.getLogger("main")
 def setup_logging() -> None:
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"),
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s", stream=sys.stdout)
-    for noisy in ("httpx", "httpcore", "websockets", "uvicorn.access"):
+    for noisy in ("httpx", "httpcore", "httpx2", "httpcore2", "anthropic", "websockets", "uvicorn.access"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
